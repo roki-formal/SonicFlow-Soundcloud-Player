@@ -1,0 +1,17 @@
+{
+  "appId": "com.sonicflow.player",
+  "appName": "SonicFlow",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "ios": {
+    "contentInset": "always",
+    "allowsLinkPreview": false,
+    "scrollEnabled": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1500,
+      "backgroundColor": "#0b0b0e"
+    }
+  }
+}
