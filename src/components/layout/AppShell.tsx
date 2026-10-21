@@ -3,7 +3,7 @@ import { Sidebar } from './Sidebar';
 import { MainContent } from './MainContent';
 import { QueuePanel } from '../player/QueuePanel';
 import { LyricsScreen } from '../lyrics/LyricsScreen';
-import { MobilePlayer } from '../mobile/MobilePlayer';
+import { MobileShell } from '../mobile/MobileShell';
 import { ThemeEditorModal } from '../theme-editor/ThemeEditorModal';
 import { SoundCloudLoginModal } from '../auth/SoundCloudLoginModal';
 import { usePlayer } from '../../core/player/PlayerContext';
@@ -15,7 +15,8 @@ export const AppShell: React.FC = () => {
     currentTrack, 
     isPlaying, 
     audioFrequencies, 
-    customizationSettings 
+    customizationSettings,
+    isMobileView
   } = usePlayer();
 
   // Audio-reactive bass pulse factor (1.0 to 1.15)
@@ -25,6 +26,10 @@ export const AppShell: React.FC = () => {
     const bass = (audioFrequencies[0] + audioFrequencies[1] + audioFrequencies[2] + audioFrequencies[3]) / 4;
     return 1 + (bass / 255) * 0.12;
   }, [isPlaying, customizationSettings.audioReactivePulse, audioFrequencies]);
+
+  if (isMobileView) {
+    return <MobileShell />;
+  }
 
   return (
     <div 
@@ -72,7 +77,7 @@ export const AppShell: React.FC = () => {
         }}
       />
 
-      {/* Outer rounded desktop app frame (as seen in Reference 1) */}
+      {/* Outer rounded desktop app frame (Reference 1 Dark Audio Studio) */}
       <div 
         style={{
           width: '100%',
@@ -100,7 +105,6 @@ export const AppShell: React.FC = () => {
 
         {/* Overlays */}
         <LyricsScreen />
-        <MobilePlayer />
         <ThemeEditorModal />
         <SoundCloudLoginModal 
           isOpen={isLoginModalOpen} 

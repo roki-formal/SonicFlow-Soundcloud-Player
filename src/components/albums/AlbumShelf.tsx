@@ -1,16 +1,26 @@
 import React from 'react';
-import { ChevronDown, Play, Heart } from 'lucide-react';
-import { TACO_ARTIST_PROFILE, INITIAL_TRACKS } from '../../core/music-providers/catalog';
+import { Play, ListMusic, Radio } from 'lucide-react';
 import { usePlayer } from '../../core/player/PlayerContext';
+import { StoredPlaylist } from '../../types';
 
 export const AlbumShelf: React.FC = () => {
-  const { playTrack } = usePlayer();
+  const { playTrack, soundCloudPlaylists, trendingPlaylists, soundCloudUser } = usePlayer();
 
-  const handlePlayAlbum = (albumTitle: string) => {
-    // Find track matching album or play default
-    const match = INITIAL_TRACKS.find((t) => t.album.toLowerCase().includes(albumTitle.toLowerCase())) || INITIAL_TRACKS[0];
-    playTrack(match);
+  const displayPlaylists: StoredPlaylist[] = soundCloudPlaylists.length > 0 
+    ? soundCloudPlaylists 
+    : trendingPlaylists.length > 0 
+      ? trendingPlaylists 
+      : [];
+
+  const handlePlayPlaylist = (playlist: StoredPlaylist) => {
+    if (playlist.tracks.length > 0) {
+      playTrack(playlist.tracks[0], playlist.tracks);
+    }
   };
+
+  if (displayPlaylists.length === 0) {
+    return null;
+  }
 
   return (
     <section style={{ padding: '0 28px 24px 28px' }}>
@@ -23,112 +33,100 @@ export const AlbumShelf: React.FC = () => {
           marginBottom: '16px',
         }}
       >
-        <h2 style={{ fontSize: '22px', fontWeight: 700, letterSpacing: '-0.02em' }}>
-          Albums
-        </h2>
-
-        <div 
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '4px', 
-            fontSize: '12px', 
-            color: 'var(--color-text-secondary)',
-            cursor: 'pointer',
-          }}
-        >
-          <span>Sort by</span>
-          <ChevronDown size={14} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.02em', margin: 0 }}>
+            {soundCloudPlaylists.length > 0 ? 'Ваши плейлисты SoundCloud' : 'Популярные плейлисты SoundCloud'}
+          </h2>
+          <span style={{ fontSize: '11px', color: '#ff5500', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', backgroundColor: 'rgba(255, 85, 0, 0.12)' }}>
+            SoundCloud
+          </span>
         </div>
       </div>
 
-      {/* Horizontal Scroll Row */}
+      {/* Horizontal Scroll Grid */}
       <div 
         style={{ 
           display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', 
+          gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', 
           gap: '18px',
           overflowX: 'auto',
           paddingBottom: '8px',
         }}
       >
-        {TACO_ARTIST_PROFILE.albums.map((album) => (
+        {displayPlaylists.slice(0, 8).map((playlist) => (
           <div 
-            key={album.id}
-            onClick={() => handlePlayAlbum(album.title)}
+            key={playlist.id}
+            onClick={() => handlePlayPlaylist(playlist)}
             className="card-interactive"
             style={{ 
               cursor: 'pointer',
               display: 'flex',
               flexDirection: 'column',
-              padding: '6px',
-              borderRadius: 'var(--radius-card)',
+              padding: '8px',
+              borderRadius: 'var(--radius-card, 12px)',
+              backgroundColor: 'var(--color-bg-surface)',
+              border: '1px solid var(--color-border)',
+              transition: 'all var(--transition-fast)',
             }}
           >
-            {/* Album Cover */}
+            {/* Playlist Cover */}
             <div 
               style={{ 
                 position: 'relative', 
                 width: '100%', 
                 aspectRatio: '1 / 1',
-                borderRadius: 'var(--radius-card)',
+                borderRadius: '8px',
                 overflow: 'hidden',
-                backgroundColor: 'var(--color-bg-surface)',
+                backgroundColor: 'var(--color-bg-base)',
                 marginBottom: '10px',
                 boxShadow: '0 6px 18px rgba(0, 0, 0, 0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
-              <img 
-                src={album.coverUrl} 
-                alt={album.title}
-                style={{ 
-                  width: '100%', 
-                  height: '100%', 
-                  objectFit: 'cover',
-                  transition: 'transform var(--transition-normal)',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.04)')}
-                onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1.0)')}
-              />
+              {playlist.coverUrl ? (
+                <img 
+                  src={playlist.coverUrl} 
+                  alt={playlist.title}
+                  style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    objectFit: 'cover',
+                  }}
+                />
+              ) : (
+                <ListMusic size={32} style={{ color: '#ff5500' }} />
+              )}
               
-              {/* Center Subtle Heart / Action Indicator */}
+              {/* Play Button Overlay */}
               <div 
                 style={{
                   position: 'absolute',
-                  inset: 0,
-                  backgroundColor: 'rgba(0, 0, 0, 0.25)',
+                  right: '8px',
+                  bottom: '8px',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  backgroundColor: '#ff5500',
+                  boxShadow: '0 4px 10px rgba(0, 0, 0, 0.4)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  opacity: 0.85,
-                  transition: 'all var(--transition-fast)',
+                  color: '#ffffff',
                 }}
               >
-                <div 
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '50%',
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                    backdropFilter: 'blur(6px)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#ffffff',
-                  }}
-                >
-                  <Heart size={15} fill="rgba(255, 255, 255, 0.8)" stroke="none" />
-                </div>
+                <Play size={15} fill="#ffffff" style={{ marginLeft: '1px' }} />
               </div>
             </div>
 
-            {/* Album Titles */}
+            {/* Playlist Titles */}
             <div 
               style={{ 
                 fontSize: '13px', 
-                fontWeight: 600, 
+                fontWeight: 700, 
                 lineHeight: '1.3',
-                marginBottom: '2px',
+                marginBottom: '4px',
                 color: 'var(--color-text-primary)',
                 display: '-webkit-box',
                 WebkitLineClamp: 2,
@@ -136,10 +134,10 @@ export const AlbumShelf: React.FC = () => {
                 overflow: 'hidden',
               }}
             >
-              {album.title}
+              {playlist.title}
             </div>
             <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-              {album.year}
+              {playlist.tracks.length > 0 ? `${playlist.tracks.length} треков` : 'SoundCloud'}
             </div>
           </div>
         ))}

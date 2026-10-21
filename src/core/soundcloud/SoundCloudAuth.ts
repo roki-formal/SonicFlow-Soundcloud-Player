@@ -1,8 +1,12 @@
-import { SoundCloudUser, OAuthLoginResponse, OAuthLoginStatusResponse } from './SoundCloudTypes';
+import { SoundCloudUser, OAuthLoginResponse, OAuthLoginStatusResponse, SavedSoundCloudAccount } from './SoundCloudTypes';
+import { get, set, del } from 'idb-keyval';
 
 const SESSION_KEY = 'sonicflow_sc_session';
 const TOKEN_KEY = 'sonicflow_sc_token';
 const USER_KEY = 'sonicflow_sc_user';
+const AUTH_TYPE_KEY = 'sonicflow_sc_auth_type';
+const PROFILE_HANDLE_KEY = 'sonicflow_sc_profile_handle';
+const IDB_ACCOUNT_KEY = 'sonicflow_sc_saved_account';
 
 export const SC_API_BASE = 'https://api.scnative.dev';
 export const SC_DIRECT_API = 'https://api-v2.soundcloud.com';
@@ -13,6 +17,8 @@ export class SoundCloudAuth {
   private static instance: SoundCloudAuth;
   private sessionId: string | null = null;
   private token: string | null = null;
+  private authType: 'oauth' | 'token' | 'profile' | null = null;
+  private profileHandle: string | null = null;
   private user: SoundCloudUser | null = null;
   private listeners: Set<(user: SoundCloudUser | null) => void> = new Set();
 
@@ -23,8 +29,25 @@ export class SoundCloudAuth {
   private isPollingActive = false;
 
   private constructor() {
+    this.restoreFromLocalStorage();
+    this.restoreFromIndexedDb();
+  }
+
+  public static getInstance(): SoundCloudAuth {
+    if (!SoundCloudAuth.instance) {
+      SoundCloudAuth.instance = new SoundCloudAuth();
+    }
+    return SoundCloudAuth.instance;
+  }
+
+  private restoreFromLocalStorage(): void {
+    if (typeof localStorage === 'undefined') return;
+
     this.sessionId = localStorage.getItem(SESSION_KEY);
     this.token = localStorage.getItem(TOKEN_KEY);
+    this.authType = (localStorage.getItem(AUTH_TYPE_KEY) as any) || null;
+    this.profileHandle = localStorage.getItem(PROFILE_HANDLE_KEY);
+
     const cachedUser = localStorage.getItem(USER_KEY);
     if (cachedUser) {
       try {
@@ -39,15 +62,75 @@ export class SoundCloudAuth {
     }
   }
 
-  public static getInstance(): SoundCloudAuth {
-    if (!SoundCloudAuth.instance) {
-      SoundCloudAuth.instance = new SoundCloudAuth();
+  private async restoreFromIndexedDb(): Promise<void> {
+    if (typeof window === 'undefined' || typeof indexedDB === 'undefined') return;
+    try {
+      const saved = await get<SavedSoundCloudAccount>(IDB_ACCOUNT_KEY);
+      if (saved && saved.user) {
+        if (!this.user) {
+          this.user = saved.user;
+          this.sessionId = saved.sessionId || null;
+          this.token = saved.token || null;
+          this.authType = saved.authType || null;
+          this.profileHandle = saved.profileHandle || null;
+
+          // Re-persist to localStorage
+          this.persistCurrentState();
+          this.notify();
+        }
+      }
+    } catch (e) {
+      console.warn('Could not read from IndexedDB account store:', e);
     }
-    return SoundCloudAuth.instance;
+  }
+
+  private async persistCurrentState(): Promise<void> {
+    if (typeof localStorage === 'undefined') return;
+
+    if (this.sessionId) localStorage.setItem(SESSION_KEY, this.sessionId);
+    else localStorage.removeItem(SESSION_KEY);
+
+    if (this.token) localStorage.setItem(TOKEN_KEY, this.token);
+    else localStorage.removeItem(TOKEN_KEY);
+
+    if (this.authType) localStorage.setItem(AUTH_TYPE_KEY, this.authType);
+    else localStorage.removeItem(AUTH_TYPE_KEY);
+
+    if (this.profileHandle) localStorage.setItem(PROFILE_HANDLE_KEY, this.profileHandle);
+    else localStorage.removeItem(PROFILE_HANDLE_KEY);
+
+    if (this.user) {
+      const serialized = JSON.stringify(this.user);
+      localStorage.setItem(USER_KEY, serialized);
+
+      // Async backup to IndexedDB for maximum durability
+      if (typeof window !== 'undefined' && typeof indexedDB !== 'undefined') {
+        try {
+          const record: SavedSoundCloudAccount = {
+            user: this.user,
+            authType: this.authType || 'profile',
+            sessionId: this.sessionId,
+            token: this.token,
+            profileHandle: this.profileHandle,
+            savedAt: Date.now(),
+          };
+          await set(IDB_ACCOUNT_KEY, record);
+        } catch (e) {
+          console.warn('Failed to backup account to IndexedDB:', e);
+        }
+      }
+    } else {
+      localStorage.removeItem(USER_KEY);
+      if (typeof window !== 'undefined' && typeof indexedDB !== 'undefined') {
+        try {
+          await del(IDB_ACCOUNT_KEY);
+        } catch (e) {}
+      }
+    }
   }
 
   public isAuthenticated(): boolean {
-    return Boolean((this.sessionId || this.token) && this.user);
+    return Boolean(this.user && (this.sessionId || this.token || this.authType === 'profile'));
   }
 
   public getSessionId(): string | null {
@@ -62,6 +145,14 @@ export class SoundCloudAuth {
     return this.user;
   }
 
+  public getAuthType(): 'oauth' | 'token' | 'profile' | null {
+    return this.authType;
+  }
+
+  public getProfileHandle(): string | null {
+    return this.profileHandle;
+  }
+
   public getAuthHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
       Accept: 'application/json, text/plain, */*',
@@ -69,14 +160,14 @@ export class SoundCloudAuth {
     if (this.sessionId) {
       headers['x-session-id'] = this.sessionId;
     }
+    if (this.token) {
+      headers['Authorization'] = `OAuth ${this.token}`;
+    }
     return headers;
   }
 
   /**
-   * 1-Click Native OAuth Flow (как в SoundCloud-Desktop)
-   * 1. Запрашивает URL авторизации у https://api.scnative.dev/auth/login
-   * 2. Открывает окно авторизации в браузере
-   * 3. Опрашивает статус в фоне, пока пользователь подтверждает вход на soundcloud.com
+   * 1-Click Native OAuth Flow (через api.scnative.dev/auth/login)
    */
   public async startOAuthLogin(options: {
     onStepChange?: (step: AuthStep) => void;
@@ -101,7 +192,7 @@ export class SoundCloudAuth {
       this.activeLoginRequestId = data.loginRequestId;
       this.activeAuthUrl = data.url;
 
-      // Открываем страницу авторизации SoundCloud в браузере по умолчанию
+      // Открываем страницу авторизации SoundCloud в системном браузере
       SoundCloudAuth.openInDefaultBrowser(data.url);
 
       if (onStepChange) onStepChange('waiting');
@@ -118,17 +209,13 @@ export class SoundCloudAuth {
   }
 
   /**
-   * Открывает URL в браузере пользователя по умолчанию.
-   * 1. В лаунчере SonicFlow вызывает /api/open-browser, запуская системный браузер Windows.
-   * 2. В веб-режиме открывает полноценную вкладку.
+   * Открывает URL в браузере по умолчанию.
    */
   public static openInDefaultBrowser(url: string): void {
     if (!url || typeof window === 'undefined') return;
 
-    // Вызываем нативный API лаунчера для открытия системного браузера по умолчанию
     fetch(`/api/open-browser?url=${encodeURIComponent(url)}`).catch(() => {});
 
-    // В обычном браузере также открываем стандартную вкладку (без popup размеров)
     try {
       window.open(url, '_blank');
     } catch (e) {
@@ -166,7 +253,7 @@ export class SoundCloudAuth {
   ): void {
     const { onStepChange, onError, onSuccess } = callbacks;
     const POLL_INTERVAL_MS = 800;
-    const MAX_DURATION_MS = 10 * 60 * 1000; // 10 минут
+    const MAX_DURATION_MS = 10 * 60 * 1000;
     const startTime = Date.now();
 
     const poll = async () => {
@@ -197,7 +284,6 @@ export class SoundCloudAuth {
             this.cancelOAuthLogin();
             if (onStepChange) onStepChange('finalizing');
 
-            // Устанавливаем полученную сессию
             const setRes = await this.setSession(statusData.sessionId);
             if (setRes.success && setRes.user) {
               if (onStepChange) onStepChange('completed');
@@ -217,7 +303,7 @@ export class SoundCloudAuth {
           }
         }
       } catch (err) {
-        // Временная ошибка сети при опросе — продолжаем опрашивать
+        // Retry on network glitch
       }
 
       if (this.isPollingActive) {
@@ -229,7 +315,7 @@ export class SoundCloudAuth {
   }
 
   /**
-   * Применение сессионного токена от https://api.scnative.dev
+   * Сохранение сессии от https://api.scnative.dev
    */
   public async setSession(sessionId: string): Promise<{ success: boolean; user?: SoundCloudUser; error?: string }> {
     const cleanSession = sessionId.trim();
@@ -239,9 +325,8 @@ export class SoundCloudAuth {
 
     try {
       this.sessionId = cleanSession;
-      localStorage.setItem(SESSION_KEY, cleanSession);
+      this.authType = 'oauth';
 
-      // Запрашиваем актуальный профиль пользователя через /me/cold или /me
       let res = await fetch(`${SC_API_BASE}/me/cold`, {
         headers: this.getAuthHeaders(),
       });
@@ -257,9 +342,10 @@ export class SoundCloudAuth {
       }
 
       const userData: SoundCloudUser = await res.json();
+      userData.authType = 'oauth';
       this.user = userData;
-      localStorage.setItem(USER_KEY, JSON.stringify(userData));
 
+      await this.persistCurrentState();
       this.notify();
       return { success: true, user: userData };
     } catch (err: any) {
@@ -268,7 +354,46 @@ export class SoundCloudAuth {
   }
 
   /**
-   * Альтернативный прямой вход по oauth_token (cookie)
+   * Подключение профиля SoundCloud по ссылке или нику (без пароля)
+   * Пример: "https://soundcloud.com/skrillex" или "skrillex" или "@skrillex"
+   */
+  public async connectWithProfile(usernameOrUrl: string, clientResolver?: (cleanHandle: string) => Promise<SoundCloudUser | null>): Promise<{ success: boolean; user?: SoundCloudUser; error?: string }> {
+    let clean = usernameOrUrl.trim();
+    if (!clean) {
+      return { success: false, error: 'Введите ник или ссылку на SoundCloud профиль' };
+    }
+
+    clean = clean.replace(/^@/, '');
+    if (clean.includes('soundcloud.com/')) {
+      const match = clean.match(/soundcloud\.com\/([^/?#]+)/);
+      if (match) clean = match[1];
+    }
+
+    try {
+      let resolvedUser: SoundCloudUser | null = null;
+      if (clientResolver) {
+        resolvedUser = await clientResolver(clean);
+      }
+
+      if (!resolvedUser) {
+        return { success: false, error: `Пользователь "${clean}" не найден в SoundCloud` };
+      }
+
+      resolvedUser.authType = 'profile';
+      this.user = resolvedUser;
+      this.authType = 'profile';
+      this.profileHandle = clean;
+
+      await this.persistCurrentState();
+      this.notify();
+      return { success: true, user: resolvedUser };
+    } catch (err: any) {
+      return { success: false, error: `Ошибка при поиске профиля: ${err?.message || err}` };
+    }
+  }
+
+  /**
+   * Вход по OAuth токену
    */
   public async loginWithToken(token: string): Promise<{ success: boolean; user?: SoundCloudUser; error?: string }> {
     const cleanToken = token.trim();
@@ -283,12 +408,12 @@ export class SoundCloudAuth {
       }
 
       const userData: SoundCloudUser = await res.json();
+      userData.authType = 'token';
       this.token = cleanToken;
       this.user = userData;
+      this.authType = 'token';
 
-      localStorage.setItem(TOKEN_KEY, cleanToken);
-      localStorage.setItem(USER_KEY, JSON.stringify(userData));
-
+      await this.persistCurrentState();
       this.notify();
       return { success: true, user: userData };
     } catch (err: any) {
@@ -304,8 +429,9 @@ export class SoundCloudAuth {
         });
         if (res.ok) {
           const userData: SoundCloudUser = await res.json();
+          userData.authType = 'oauth';
           this.user = userData;
-          localStorage.setItem(USER_KEY, JSON.stringify(userData));
+          await this.persistCurrentState();
           this.notify();
           return;
         } else if (res.status === 401) {
@@ -322,15 +448,23 @@ export class SoundCloudAuth {
         const res = await fetch(`${SC_DIRECT_API}/me?oauth_token=${encodeURIComponent(this.token)}`);
         if (res.ok) {
           const userData: SoundCloudUser = await res.json();
+          userData.authType = 'token';
           this.user = userData;
-          localStorage.setItem(USER_KEY, JSON.stringify(userData));
+          await this.persistCurrentState();
           this.notify();
+          return;
         } else if (res.status === 401) {
           this.logout();
+          return;
         }
       } catch (e) {
         console.warn('Failed to refresh user via token:', e);
       }
+    }
+
+    if (this.authType === 'profile' && this.user) {
+      // Profile is already persistent
+      this.notify();
     }
   }
 
@@ -339,9 +473,23 @@ export class SoundCloudAuth {
     this.sessionId = null;
     this.token = null;
     this.user = null;
-    localStorage.removeItem(SESSION_KEY);
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
+    this.authType = null;
+    this.profileHandle = null;
+
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      localStorage.removeItem(AUTH_TYPE_KEY);
+      localStorage.removeItem(PROFILE_HANDLE_KEY);
+    }
+
+    if (typeof window !== 'undefined' && typeof indexedDB !== 'undefined') {
+      try {
+        del(IDB_ACCOUNT_KEY).catch(() => {});
+      } catch (e) {}
+    }
+
     this.notify();
   }
 

@@ -9,7 +9,33 @@ export interface SoundCloudUser {
   likes_count?: number;
   track_count?: number;
   playlist_count?: number;
+  city?: string;
   country?: string;
+  description?: string;
+  full_name?: string;
+  authType?: 'oauth' | 'token' | 'profile';
+}
+
+export interface SoundCloudArtist {
+  id: number;
+  urn?: string;
+  username: string;
+  avatar_url: string;
+  permalink_url: string;
+  followers_count?: number;
+  track_count?: number;
+  city?: string;
+  country?: string;
+  isFollowed?: boolean;
+}
+
+export interface SavedSoundCloudAccount {
+  user: SoundCloudUser;
+  authType: 'oauth' | 'token' | 'profile';
+  sessionId?: string | null;
+  token?: string | null;
+  profileHandle?: string | null;
+  savedAt: number;
 }
 
 export interface SoundCloudMediaTranscoding {

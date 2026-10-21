@@ -7,34 +7,61 @@ import {
   ListMusic, 
   Search, 
   Palette, 
-  Smartphone,
   Radio,
   RefreshCw,
-  Zap
+  Zap,
+  Users,
+  ExternalLink
 } from 'lucide-react';
 import { usePlayer, NavSection } from '../../core/player/PlayerContext';
-import { INITIAL_FRIENDS } from '../../core/music-providers/catalog';
+import { SoundCloudArtist } from '../../core/soundcloud/SoundCloudTypes';
 
 export const Sidebar: React.FC = () => {
   const { 
     activeSection, 
     setActiveSection, 
     toggleThemeEditor, 
-    toggleMobileView,
-    isMobileView,
     soundCloudUser,
+    soundCloudFollowings,
     toggleLoginModal,
     syncSoundCloudData,
-    isSyncing
+    isSyncing,
+    setActiveArtist
   } = usePlayer();
 
   const navItems: { id: NavSection; label: string; icon: React.ReactNode }[] = [
-    { id: 'home', label: 'Home', icon: <Home size={18} /> },
-    { id: 'albums', label: 'Albums', icon: <Disc size={18} /> },
-    { id: 'local', label: 'Local Files', icon: <FolderDown size={18} /> },
-    { id: 'favorites', label: 'Favorites', icon: <Heart size={18} /> },
-    { id: 'playlists', label: 'Playlists', icon: <ListMusic size={18} /> },
+    { id: 'home', label: 'Главная', icon: <Home size={18} /> },
+    { id: 'albums', label: 'Плейлисты & Альбомы', icon: <Disc size={18} /> },
+    { id: 'favorites', label: 'Избранное & Лайки', icon: <Heart size={18} /> },
+    { id: 'playlists', label: 'Мои подборки', icon: <ListMusic size={18} /> },
+    { id: 'local', label: 'Локальные файлы', icon: <FolderDown size={18} /> },
   ];
+
+  const defaultArtists: SoundCloudArtist[] = [
+    {
+      id: 856062,
+      username: 'Skrillex',
+      avatar_url: 'https://i1.sndcdn.com/avatars-000329593282-3lshg4-t500x500.jpg',
+      permalink_url: 'https://soundcloud.com/skrillex',
+      followers_count: 6710000,
+    },
+    {
+      id: 110294,
+      username: 'San Holo',
+      avatar_url: 'https://i1.sndcdn.com/avatars-000185919315-8i8q2g-t500x500.jpg',
+      permalink_url: 'https://soundcloud.com/sanholobeats',
+      followers_count: 1420000,
+    },
+    {
+      id: 38812,
+      username: 'Monstercat',
+      avatar_url: 'https://i1.sndcdn.com/avatars-000305888204-i6a9y7-t500x500.jpg',
+      permalink_url: 'https://soundcloud.com/monstercat',
+      followers_count: 2850000,
+    },
+  ];
+
+  const displayArtists = soundCloudFollowings.length > 0 ? soundCloudFollowings.slice(0, 8) : defaultArtists;
 
   return (
     <aside 
@@ -58,31 +85,37 @@ export const Sidebar: React.FC = () => {
               width: '32px',
               height: '32px',
               borderRadius: '8px',
-              backgroundColor: 'var(--color-accent)',
+              backgroundColor: '#ff5500',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: 'var(--color-accent-contrast)',
+              color: '#ffffff',
+              boxShadow: '0 2px 10px rgba(255, 85, 0, 0.4)',
             }}
           >
             <Radio size={18} />
           </div>
-          <span style={{ fontSize: '18px', fontWeight: 700, letterSpacing: '-0.02em' }}>
-            SonicFlow
-          </span>
+          <div>
+            <span style={{ fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em', display: 'block', lineHeight: 1.1 }}>
+              SonicFlow
+            </span>
+            <span style={{ fontSize: '10px', color: '#ff5500', fontWeight: 700, letterSpacing: '0.04em' }}>
+              SoundCloud Sync
+            </span>
+          </div>
         </div>
 
         <h3 
           style={{ 
-            fontSize: '12px', 
+            fontSize: '11px', 
             textTransform: 'uppercase', 
             letterSpacing: '0.08em', 
             color: 'var(--color-text-muted)', 
-            marginBottom: '12px',
-            fontWeight: 600,
+            marginBottom: '10px',
+            fontWeight: 700,
           }}
         >
-          Menu
+          Навигация
         </h3>
 
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -100,8 +133,8 @@ export const Sidebar: React.FC = () => {
                   borderRadius: 'var(--radius-control)',
                   backgroundColor: isActive ? 'var(--color-bg-surface-active)' : 'transparent',
                   color: isActive ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
-                  fontWeight: isActive ? 600 : 400,
-                  fontSize: '14px',
+                  fontWeight: isActive ? 700 : 400,
+                  fontSize: '13px',
                   border: 'none',
                   cursor: 'pointer',
                   textAlign: 'left',
@@ -120,7 +153,7 @@ export const Sidebar: React.FC = () => {
                   }
                 }}
               >
-                <span style={{ color: isActive ? 'var(--color-accent)' : 'inherit' }}>
+                <span style={{ color: isActive ? '#ff5500' : 'inherit' }}>
                   {item.icon}
                 </span>
                 <span>{item.label}</span>
@@ -130,87 +163,58 @@ export const Sidebar: React.FC = () => {
         </nav>
       </div>
 
-      {/* Friends Section */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <h3 
-          style={{ 
-            fontSize: '12px', 
-            textTransform: 'uppercase', 
-            letterSpacing: '0.08em', 
-            color: 'var(--color-text-muted)', 
-            marginBottom: '14px',
-            fontWeight: 600,
-          }}
-        >
-          Friends
-        </h3>
+      {/* Following / Artists Section (Real SoundCloud Artists) */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+          <h3 
+            style={{ 
+              fontSize: '11px', 
+              textTransform: 'uppercase', 
+              letterSpacing: '0.08em', 
+              color: 'var(--color-text-muted)', 
+              margin: 0,
+              fontWeight: 700,
+            }}
+          >
+            {soundCloudFollowings.length > 0 ? 'Ваши подписки' : 'Артисты SoundCloud'}
+          </h3>
+          <Users size={13} style={{ color: 'var(--color-text-muted)' }} />
+        </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto', flex: 1 }}>
-          {INITIAL_FRIENDS.map((friend) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', flex: 1, paddingRight: '4px' }}>
+          {displayArtists.map((artist) => (
             <div 
-              key={friend.id} 
+              key={artist.id} 
+              onClick={() => setActiveArtist(artist)}
               style={{ 
                 display: 'flex', 
                 alignItems: 'center', 
                 gap: '10px',
-                padding: '4px',
+                padding: '6px 8px',
                 borderRadius: '8px',
                 cursor: 'pointer',
+                transition: 'background-color var(--transition-fast)',
               }}
-              title={`${friend.name} is listening to ${friend.currentTrack} — ${friend.artist}`}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-bg-surface-hover)')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+              title={`Открыть треки ${artist.username}`}
             >
-              <div style={{ position: 'relative', width: '32px', height: '32px', flexShrink: 0 }}>
-                <img 
-                  src={friend.avatarUrl} 
-                  alt={friend.name} 
-                  style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }}
-                />
-                {friend.isOnline && (
-                  <span 
-                    style={{
-                      position: 'absolute',
-                      bottom: 0,
-                      right: 0,
-                      width: '8px',
-                      height: '8px',
-                      backgroundColor: '#10b981',
-                      borderRadius: '50%',
-                      border: '1.5px solid var(--color-bg-sidebar)',
-                    }}
-                  />
-                )}
-              </div>
+              <img 
+                src={artist.avatar_url || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100'} 
+                alt={artist.username} 
+                style={{ width: '30px', height: '30px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+              />
 
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: '13px', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {friend.name}
+                <div style={{ fontSize: '12px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {artist.username}
                 </div>
-                <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {friend.currentTrack} · {friend.artist}
+                <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {artist.followers_count ? `${Math.round(artist.followers_count / 1000)}K подписчиков` : 'SoundCloud'}
                 </div>
               </div>
             </div>
           ))}
-        </div>
-
-        {/* Find more friends button */}
-        <div 
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '8px', 
-            marginTop: '16px',
-            padding: '8px 12px',
-            backgroundColor: 'var(--color-bg-surface)',
-            borderRadius: 'var(--radius-control)',
-            border: '1px solid var(--color-border)',
-            color: 'var(--color-text-muted)',
-            fontSize: '12px',
-            cursor: 'pointer',
-          }}
-        >
-          <Search size={14} />
-          <span style={{ flex: 1 }}>Find more friends</span>
         </div>
       </div>
 
@@ -223,26 +227,26 @@ export const Sidebar: React.FC = () => {
               padding: '10px 12px',
               borderRadius: 'var(--radius-control)',
               backgroundColor: 'var(--color-bg-surface)',
-              border: '1px solid var(--color-border)',
+              border: '1px solid rgba(255, 85, 0, 0.25)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
-              position: 'relative',
+              boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
             }}
-            title="Нажмите для управления аккаунтом SoundCloud"
+            title="Управление аккаунтом SoundCloud"
           >
             <img 
               src={soundCloudUser.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200'}
               alt={soundCloudUser.username}
-              style={{ width: '30px', height: '30px', borderRadius: '50%', objectFit: 'cover' }}
+              style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1.5px solid #ff5500', flexShrink: 0 }}
             />
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {soundCloudUser.username}
               </div>
               <div style={{ fontSize: '10px', color: '#ff5500', fontWeight: 600 }}>
-                {isSyncing ? 'Синхронизация...' : 'SoundCloud Sync ✓'}
+                {isSyncing ? 'Синхронизация...' : 'Сохранен ✓'}
               </div>
             </div>
 
@@ -258,7 +262,7 @@ export const Sidebar: React.FC = () => {
                 border: 'none',
                 color: isSyncing ? '#ff5500' : 'var(--color-text-secondary)',
                 cursor: 'pointer',
-                padding: '5px',
+                padding: '4px',
                 borderRadius: '6px',
                 display: 'flex',
                 alignItems: 'center',
@@ -272,7 +276,7 @@ export const Sidebar: React.FC = () => {
           <button
             onClick={() => toggleLoginModal(true)}
             className="btn-interactive"
-            title="Войти в аккаунт SoundCloud через браузер по умолчанию"
+            title="Подключить аккаунт SoundCloud для полной синхронизации"
             style={{
               width: '100%',
               display: 'flex',
@@ -287,7 +291,7 @@ export const Sidebar: React.FC = () => {
               fontSize: '12px',
               fontWeight: 700,
               cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(255, 85, 0, 0.35)',
+              boxShadow: '0 4px 14px rgba(255, 85, 0, 0.35)',
               transition: 'all var(--transition-fast)',
             }}
           >
@@ -324,29 +328,8 @@ export const Sidebar: React.FC = () => {
             e.currentTarget.style.color = 'var(--color-text-secondary)';
           }}
         >
-          <Palette size={15} style={{ color: 'var(--color-accent)' }} />
-          <span>Theme Studio</span>
-        </button>
-
-        <button
-          onClick={() => toggleMobileView(!isMobileView)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '8px 12px',
-            borderRadius: 'var(--radius-control)',
-            backgroundColor: isMobileView ? 'var(--color-accent)' : 'var(--color-bg-surface)',
-            border: '1px solid var(--color-border)',
-            color: isMobileView ? 'var(--color-accent-contrast)' : 'var(--color-text-secondary)',
-            fontSize: '12px',
-            fontWeight: 500,
-            cursor: 'pointer',
-            transition: 'background-color var(--transition-fast)',
-          }}
-        >
-          <Smartphone size={15} />
-          <span>{isMobileView ? 'Desktop Layout' : 'iOS Mobile View'}</span>
+          <Palette size={15} style={{ color: '#ff5500' }} />
+          <span>Стили и Темы</span>
         </button>
       </div>
     </aside>

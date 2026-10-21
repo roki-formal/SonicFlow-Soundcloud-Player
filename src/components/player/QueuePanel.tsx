@@ -12,7 +12,9 @@ import {
   Repeat1,
   GripVertical, 
   Mic2,
-  Disc
+  Disc,
+  User,
+  Cloud
 } from 'lucide-react';
 import { usePlayer } from '../../core/player/PlayerContext';
 
@@ -27,18 +29,20 @@ export const QueuePanel: React.FC = () => {
     currentTime, 
     duration, 
     queue, 
-    queueIndex,
+    queueIndex, 
     isShuffle, 
     toggleShuffle, 
     repeatMode, 
-    cycleRepeat,
-    removeFromQueue,
-    playTrack,
-    toggleLyrics,
-    isFavorite,
-    toggleFavorite,
-    toggleThemeEditor,
-    customizationSettings
+    cycleRepeat, 
+    removeFromQueue, 
+    playTrack, 
+    toggleLyrics, 
+    isFavorite, 
+    toggleFavorite, 
+    toggleThemeEditor, 
+    customizationSettings,
+    soundCloudUser,
+    toggleLoginModal
   } = usePlayer();
 
   const formatTime = (secs: number) => {
@@ -73,13 +77,51 @@ export const QueuePanel: React.FC = () => {
           marginBottom: '20px',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <img 
-            src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80" 
-            alt="Mark Makowsky"
-            style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }}
-          />
-          <span style={{ fontSize: '13px', fontWeight: 600 }}>Mark Makowsky</span>
+        <div 
+          onClick={() => toggleLoginModal(true)}
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '10px',
+            cursor: 'pointer',
+            padding: '4px 8px',
+            borderRadius: 'var(--radius-control)',
+            transition: 'background-color var(--transition-fast)',
+          }}
+          title={soundCloudUser ? `SoundCloud: ${soundCloudUser.username} (нажмите для управления)` : 'Войти в аккаунт SoundCloud'}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--color-bg-surface-hover)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+        >
+          {soundCloudUser?.avatar_url ? (
+            <img 
+              src={soundCloudUser.avatar_url} 
+              alt={soundCloudUser.username}
+              style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #ff5500' }}
+            />
+          ) : (
+            <div 
+              style={{ 
+                width: '32px', 
+                height: '32px', 
+                borderRadius: '50%', 
+                backgroundColor: 'rgba(255, 85, 0, 0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ff5500'
+              }}
+            >
+              <Cloud size={18} />
+            </div>
+          )}
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+              {soundCloudUser ? soundCloudUser.username : 'Войти в SoundCloud'}
+            </span>
+            <span style={{ fontSize: '10px', color: soundCloudUser ? '#ff5500' : 'var(--color-text-muted)' }}>
+              {soundCloudUser ? 'SoundCloud подключен' : 'Синхронизация'}
+            </span>
+          </div>
         </div>
 
         <button

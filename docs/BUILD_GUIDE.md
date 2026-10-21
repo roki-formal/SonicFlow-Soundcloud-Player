@@ -17,15 +17,32 @@ npm run build:exe
 ```
 Команда собирает фронтенд-бандл через Vite и компилирует C# лаунчер встроенным компилятором `.NET Framework` (`csc.exe`) с иконкой `app.ico`. Дополнительных SDK устанавливать не требуется.
 
+### Сборка всех релизных дистрибутивов (Windows, Arch Linux, iOS .ipa):
+```powershell
+npm run build:release
+```
+Команда собирает бандлы для всех платформ и помещает их в каталог `release/`.
+
 ---
 
-## 2. Запуск на Linux
+## 2. Запуск и установка на Linux (включая Arch Linux)
 
-### Готовый лаунчер:
+### Установка готового пакета Arch Linux (pacman):
+```bash
+sudo pacman -U release/sonicflow-1.2.0-1-x86_64.pkg.tar.zst
+# Запуск:
+sonicflow
+```
+
+### Сборка через PKGBUILD (Arch / AUR):
+```bash
+makepkg -si
+```
+
+### Портативный запуск на любом дистрибутиве Linux:
 - **`sonicflow-linux.sh`** — скрипт запуска для Ubuntu, Debian, Fedora, Arch, Manjaro и других дистрибутивов.
 - **`SonicFlow.desktop`** — файл интеграции с главным меню приложений Linux (GNOME, KDE Plasma, XFCE).
 
-### Быстрый запуск в Linux:
 ```bash
 chmod +x sonicflow-linux.sh
 ./sonicflow-linux.sh
@@ -36,7 +53,11 @@ chmod +x sonicflow-linux.sh
 
 ## 3. Сборка и запуск на iOS (iPhone / iPad)
 
-### Способ А: Нативное приложение через Xcode (Capacitor)
+### Способ А: Готовый файл `.ipa` (Sideloading)
+- Готовый файл **`release/SonicFlow.ipa`** (и `SonicFlow.ipa` в корне).
+- Устанавливается на любой iPhone/iPad без Mac через **AltStore**, **Sideloadly**, **TrollStore** или **Scarlet**.
+
+### Способ Б: Нативное приложение через Xcode (Capacitor)
 Проект нативного iOS приложения уже инициализирован в каталоге `ios/`:
 - Файл рабочей области: `ios/App/App.xcworkspace`.
 - В `ios/App/App/Info.plist` уже сконфигурирован `UIBackgroundModes = audio` (фоновое воспроизведение при заблокированном экране и при сворачивании приложения).
@@ -52,7 +73,7 @@ npx cap open ios
 ```
 В Xcode выберите ваше устройство (или симулятор iPhone 15/16 Pro), укажите ваш Apple ID в `Signing & Capabilities` и нажмите **Run** (или экспортируйте `.ipa` / TestFlight).
 
-### Способ Б: Установка как PWA (без Mac и Xcode)
+### Способ В: Установка как PWA (без Mac и Xcode)
 В `index.html` и `public/manifest.json` настроены все мобильные теги Apple:
 1. Запустите плеер локально или разместите на любом хостинге (Vercel, Cloudflare Pages, Netlify).
 2. Откройте ссылку в **Safari** на iPhone.

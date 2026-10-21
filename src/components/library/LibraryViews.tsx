@@ -13,7 +13,7 @@ import {
 import { usePlayer } from '../../core/player/PlayerContext';
 import { LocalFilesProvider } from '../../core/music-providers/LocalFilesProvider';
 import { StorageManager } from '../../core/storage/StorageManager';
-import { INITIAL_TRACKS, TACO_ARTIST_PROFILE } from '../../core/music-providers/catalog';
+import { INITIAL_TRACKS } from '../../core/music-providers/catalog';
 import { AudioTrack, StoredPlaylist } from '../../types';
 
 export const LocalFilesView: React.FC = () => {

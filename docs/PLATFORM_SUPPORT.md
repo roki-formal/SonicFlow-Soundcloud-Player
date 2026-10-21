@@ -18,12 +18,14 @@
 
 ---
 
-## 2. Linux Desktop
+## 2. Linux Desktop (Arch Linux & Other Distributions)
 
-- **Среда выполнения**: Ubuntu/Debian, Fedora, Arch Linux, Manjaro, openSUSE и другие дистрибутивы с поддержкой X11 и Wayland.
-- **Файлы доставки**:
-  - `sonicflow-linux.sh`: автономный исполняемый POSIX bash-скрипт запуска.
-  - `SonicFlow.desktop`: файл для меню приложений GNOME / KDE / XFCE с категорией `AudioVideo;Player;`.
+- **Среда выполнения**: Arch Linux, Manjaro, Ubuntu/Debian, Fedora, openSUSE и другие дистрибутивы с поддержкой X11 и Wayland.
+- **Готовые пакеты доставки**:
+  - `sonicflow-1.2.0-1-x86_64.pkg.tar.zst`: официальный пакет pacman для Arch Linux (`sudo pacman -U sonicflow-1.2.0-1-x86_64.pkg.tar.zst`).
+  - `PKGBUILD`: стандартный рецепт сборки Arch Linux для AUR и `makepkg -si`.
+  - `SonicFlow-Linux-x86_64.tar.gz`: универсальный портативный архив с лаунчером и скриптом `install.sh`.
+  - `SonicFlow.desktop`: файл для меню приложений GNOME / KDE / XFCE / Sway с категорией `AudioVideo;Player;`.
 - **Интеграция с ОС**:
   - Поддержка системного управления звуком через MediaSession API / MPRIS.
   - HiDPI масштабирование для экранов высокой четкости.
@@ -33,17 +35,19 @@
 
 ## 3. iOS (iPhone / iPad)
 
+- **Готовый пакет `.ipa`**:
+  - Скомпилированный готовый пакет `release/SonicFlow.ipa` (и в корне `SonicFlow.ipa`).
+  - Подходит для прямой установки через **AltStore**, **Sideloadly**, **TrollStore** или **Scarlet**.
 - **Нативный проект Capacitor (Xcode)**:
   - Проект инициализирован и сгенерирован в каталоге `ios/App/App.xcworkspace`.
   - В файле `ios/App/App/Info.plist` настроены:
     - `UIBackgroundModes: ["audio"]` — непрерывное воспроизведение в фоне при заблокированном экране и переключении приложений.
     - `NSAppTransportSecurity: NSAllowsArbitraryLoads = true` — доступ к CDN серверам транскодинга потоков SoundCloud.
-  - Для компиляции `.ipa` и установки через Xcode / AltStore / Sideloadly / TestFlight требуется macOS.
 - **PWA (Progressive Web App)**:
   - Поддержка установки на экран «Домой» через Safari без Xcode.
   - Настроены теги `apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style` и иконки.
 - **Мобильный UX**:
-  - Точное соответствие дизайну из референса 3: верхний остров Dynamic Island, крупный виниловый диск по центру, закругленная док-панель управления.
-  - Нижняя шторка синхронизированных текстов песен с жестом смахивания (Swipe Down to dismiss).
+  - Адаптивный нативный интерфейс с полноэкранным виниловым плеером и плавающим мини-плеером над нижней панелью навигации.
+  - Выдвижная шторка синхронизированных текстов песен с автоматическим скроллом и переходом по строкам.
   - Учет системных отступов `env(safe-area-inset-top)` и `env(safe-area-inset-bottom)`.
-  - Управление одной рукой.
+  - Удобное управление одной рукой.

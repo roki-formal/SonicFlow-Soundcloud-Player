@@ -6,7 +6,7 @@ import { INITIAL_TRACKS } from '../music-providers/catalog';
 import { StorageManager } from '../storage/StorageManager';
 import { SoundCloudAuth } from '../soundcloud/SoundCloudAuth';
 import { SoundCloudClient } from '../soundcloud/SoundCloudClient';
-import { SoundCloudUser } from '../soundcloud/SoundCloudTypes';
+import { SoundCloudUser, SoundCloudArtist } from '../soundcloud/SoundCloudTypes';
 import { CustomizationManager, CustomizationSettings } from '../settings/CustomizationManager';
 
 export type NavSection = 'home' | 'albums' | 'local' | 'favorites' | 'playlists';
@@ -35,7 +35,12 @@ interface PlayerContextValue {
   soundCloudLikes: AudioTrack[];
   soundCloudStream: AudioTrack[];
   soundCloudPlaylists: StoredPlaylist[];
+  soundCloudFollowings: SoundCloudArtist[];
+  trendingTracks: AudioTrack[];
+  trendingPlaylists: StoredPlaylist[];
+  activeArtist: SoundCloudArtist | null;
   isSyncing: boolean;
+  syncMessage: string | null;
   customizationSettings: CustomizationSettings;
 
   // Actions
@@ -57,6 +62,9 @@ interface PlayerContextValue {
   toggleMobileView: (mobile?: boolean) => void;
   toggleLoginModal: (open?: boolean) => void;
   syncSoundCloudData: () => Promise<void>;
+  connectSoundCloudProfile: (usernameOrUrl: string) => Promise<{ success: boolean; error?: string }>;
+  logoutSoundCloud: () => void;
+  setActiveArtist: (artist: SoundCloudArtist | null) => void;
   updateCustomizationSettings: (partial: Partial<CustomizationSettings>) => void;
   resetCustomizationSettings: () => void;
   setActiveSection: (section: NavSection) => void;
@@ -102,39 +110,118 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isLyricsOpen, setIsLyricsOpen] = useState<boolean>(false);
   const [lyricsTab, setLyricsTab] = useState<LyricsTab>('synced');
   const [isThemeEditorOpen, setIsThemeEditorOpen] = useState<boolean>(false);
-  const [isMobileView, setIsMobileView] = useState<boolean>(false);
+  const [isMobileView, setIsMobileView] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth <= 768 || (typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+  });
   const [activeSection, setActiveSection] = useState<NavSection>('home');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [audioFrequencies, setAudioFrequencies] = useState<Uint8Array>(new Uint8Array(32));
   const [, setFavTick] = useState<number>(0);
 
-  // SoundCloud state
+  // SoundCloud synchronized state
   const [soundCloudUser, setSoundCloudUser] = useState<SoundCloudUser | null>(scAuth.getUser());
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
   const [soundCloudLikes, setSoundCloudLikes] = useState<AudioTrack[]>([]);
   const [soundCloudStream, setSoundCloudStream] = useState<AudioTrack[]>([]);
   const [soundCloudPlaylists, setSoundCloudPlaylists] = useState<StoredPlaylist[]>([]);
+  const [soundCloudFollowings, setSoundCloudFollowings] = useState<SoundCloudArtist[]>([]);
+  const [trendingTracks, setTrendingTracks] = useState<AudioTrack[]>(INITIAL_TRACKS);
+  const [trendingPlaylists, setTrendingPlaylists] = useState<StoredPlaylist[]>([]);
+  const [activeArtist, setActiveArtist] = useState<SoundCloudArtist | null>(null);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
-  // Synchronize SoundCloud data
+  // Synchronize SoundCloud data for connected account
   const syncSoundCloudData = useCallback(async () => {
-    if (!scAuth.isAuthenticated()) return;
+    if (!scAuth.isAuthenticated()) {
+      // If not authenticated, load trending tracks and playlists from SoundCloud
+      try {
+        const [trendT, trendP] = await Promise.all([
+          scClient.getTrendingTracks('all-music', 25),
+          scClient.getTrendingPlaylists(8),
+        ]);
+        if (trendT.length > 0) {
+          setTrendingTracks(trendT);
+        }
+        if (trendP.length > 0) {
+          setTrendingPlaylists(trendP);
+        }
+      } catch (e) {
+        console.warn('Could not fetch trending SoundCloud data:', e);
+      }
+      return;
+    }
+
     setIsSyncing(true);
+    setSyncMessage('Синхронизация с SoundCloud...');
     try {
-      const [likes, stream, playlists] = await Promise.all([
+      const [likes, stream, playlists, followings] = await Promise.all([
         scClient.getMyLikes(50),
         scClient.getMyStream(40),
         scClient.getMyPlaylists(),
+        scClient.getMyFollowings(25),
       ]);
+
       setSoundCloudLikes(likes);
       setSoundCloudStream(stream);
       setSoundCloudPlaylists(playlists);
+      setSoundCloudFollowings(followings);
+
+      // Save liked track IDs into local storage favorites as well
+      likes.forEach((track) => {
+        if (!storage.isFavorite(track.id)) {
+          storage.toggleFavorite(track.id);
+        }
+      });
+
+      // If current track is default, replace with user's top SoundCloud like or stream
+      if (likes.length > 0 && currentTrack?.id.startsWith('sc-1553270944')) {
+        setCurrentTrack(likes[0]);
+        setQueue(likes);
+        queueManager.setQueue(likes, 0);
+      } else if (stream.length > 0 && currentTrack?.id.startsWith('sc-1553270944')) {
+        setCurrentTrack(stream[0]);
+        setQueue(stream);
+        queueManager.setQueue(stream, 0);
+      }
+
+      setSyncMessage('Синхронизировано ✓');
+      setTimeout(() => setSyncMessage(null), 3000);
     } catch (e) {
       console.error('Error synchronizing SoundCloud data:', e);
+      setSyncMessage('Ошибка синхронизации');
+      setTimeout(() => setSyncMessage(null), 4000);
     } finally {
       setIsSyncing(false);
     }
-  }, [scAuth, scClient]);
+  }, [scAuth, scClient, storage, currentTrack, queueManager]);
+
+  // Connect profile by username / URL
+  const connectSoundCloudProfile = useCallback(
+    async (usernameOrUrl: string) => {
+      setIsSyncing(true);
+      const res = await scAuth.connectWithProfile(usernameOrUrl, (cleanHandle) => scClient.resolveUser(cleanHandle));
+      setIsSyncing(false);
+      if (res.success && res.user) {
+        setSoundCloudUser(res.user);
+        await syncSoundCloudData();
+        return { success: true };
+      }
+      return { success: false, error: res.error || 'Не удалось найти профиль' };
+    },
+    [scAuth, scClient, syncSoundCloudData]
+  );
+
+  const logoutSoundCloud = useCallback(() => {
+    scAuth.logout();
+    setSoundCloudUser(null);
+    setSoundCloudLikes([]);
+    setSoundCloudStream([]);
+    setSoundCloudPlaylists([]);
+    setSoundCloudFollowings([]);
+    setActiveArtist(null);
+  }, [scAuth]);
 
   // Subscribe to SoundCloud auth changes
   useEffect(() => {
@@ -146,13 +233,27 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setSoundCloudLikes([]);
         setSoundCloudStream([]);
         setSoundCloudPlaylists([]);
+        setSoundCloudFollowings([]);
       }
     });
-    if (scAuth.isAuthenticated()) {
-      syncSoundCloudData();
-    }
+
+    // Auto-sync on startup
+    syncSoundCloudData();
+
     return unsub;
   }, [scAuth, syncSoundCloudData]);
+
+  // Responsive mobile view detection
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const updateMobile = () => {
+      const isNarrow = window.innerWidth <= 768;
+      const isTouch = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      setIsMobileView(isNarrow || isTouch);
+    };
+    window.addEventListener('resize', updateMobile);
+    return () => window.removeEventListener('resize', updateMobile);
+  }, []);
 
   // Sync queue updates
   useEffect(() => {
@@ -214,7 +315,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if user is typing in an input
       if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
         return;
       }
@@ -269,7 +369,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const playTrack = useCallback(
     (track: AudioTrack, newQueue?: AudioTrack[]) => {
-      if (newQueue) {
+      if (newQueue && newQueue.length > 0) {
         const startIdx = newQueue.findIndex((t) => t.id === track.id);
         queueManager.setQueue(newQueue, Math.max(0, startIdx));
       } else {
@@ -438,7 +538,12 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     soundCloudLikes,
     soundCloudStream,
     soundCloudPlaylists,
+    soundCloudFollowings,
+    trendingTracks,
+    trendingPlaylists,
+    activeArtist,
     isSyncing,
+    syncMessage,
     customizationSettings,
     playTrack,
     togglePlay,
@@ -458,6 +563,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     toggleMobileView,
     toggleLoginModal,
     syncSoundCloudData,
+    connectSoundCloudProfile,
+    logoutSoundCloud,
+    setActiveArtist,
     updateCustomizationSettings,
     resetCustomizationSettings,
     setActiveSection,

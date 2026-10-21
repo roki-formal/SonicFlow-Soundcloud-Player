@@ -93,7 +93,7 @@ export const HeaderSearch: React.FC = () => {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Taco Hemingway"
+          placeholder="Поиск треков и артистов в SoundCloud..."
           style={{
             width: '100%',
             backgroundColor: 'var(--color-bg-surface)',

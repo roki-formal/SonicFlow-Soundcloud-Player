@@ -103,7 +103,20 @@ export class AudioEngine {
       this.hls = null;
     }
 
-    const url = track.streamUrl;
+    let url = track.streamUrl;
+    if (track.provider === 'soundcloud' && (!url || url.includes('api-v2.soundcloud.com/media') || url.includes('/stream/hls') || url.includes('/stream/progressive'))) {
+      try {
+        const { SoundCloudClient } = await import('../soundcloud/SoundCloudClient');
+        const resolved = await SoundCloudClient.getInstance().resolveStreamUrl(url, track.id);
+        if (resolved && resolved !== url) {
+          url = resolved;
+          track.streamUrl = resolved;
+        }
+      } catch (e) {
+        console.warn('Could not resolve stream URL for track:', e);
+      }
+    }
+
     const isHls = url.includes('.m3u8') || url.includes('/hls');
 
     if (isHls && Hls.isSupported()) {
@@ -113,6 +126,22 @@ export class AudioEngine {
       });
       this.hls.loadSource(url);
       this.hls.attachMedia(this.audio);
+      this.hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (data.fatal) {
+          console.warn('HLS Fatal Error, attempting recovery:', data.type);
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              this.hls?.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              this.hls?.recoverMediaError();
+              break;
+            default:
+              this.hls?.destroy();
+              break;
+          }
+        }
+      });
     } else if (isHls && this.audio.canPlayType('application/vnd.apple.mpegurl')) {
       // Native Apple WebKit HLS for iOS Safari & macOS
       this.audio.src = url;

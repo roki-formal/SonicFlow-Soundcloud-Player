@@ -1,8 +1,8 @@
 import './setup';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { SoundCloudAuth } from '../src/core/soundcloud/SoundCloudAuth';
-import { SoundCloudClient } from '../src/core/soundcloud/SoundCloudClient';
-import { SoundCloudRawTrack } from '../src/core/soundcloud/SoundCloudTypes';
+import { SoundCloudClient, DEFAULT_CLIENT_ID } from '../src/core/soundcloud/SoundCloudClient';
+import { SoundCloudRawTrack, SoundCloudUser } from '../src/core/soundcloud/SoundCloudTypes';
 
 describe('SoundCloud Integration', () => {
   beforeEach(() => {
@@ -15,7 +15,7 @@ describe('SoundCloud Integration', () => {
     expect(auth.isAuthenticated()).toBe(false);
 
     // Mock native sessionId
-    const mockUser = {
+    const mockUser: SoundCloudUser = {
       id: 887766,
       username: 'ElectronicProducer',
       avatar_url: 'https://i1.sndcdn.com/avatars-0001-large.jpg',
@@ -42,6 +42,64 @@ describe('SoundCloud Integration', () => {
     expect(auth.isAuthenticated()).toBe(false);
     expect(auth.getSessionId()).toBeNull();
     expect(localStorage.getItem('sonicflow_sc_session')).toBeNull();
+  });
+
+  it('SoundCloudAuth connects profile by username/url and saves account permanently', async () => {
+    const auth = SoundCloudAuth.getInstance();
+    auth.logout();
+
+    const mockProfileUser: SoundCloudUser = {
+      id: 123456,
+      username: 'Skrillex',
+      avatar_url: 'https://i1.sndcdn.com/avatars-skrillex-large.jpg',
+      permalink_url: 'https://soundcloud.com/skrillex',
+      followers_count: 6710000,
+      likes_count: 42,
+      playlist_count: 10,
+    };
+
+    const res = await auth.connectWithProfile('skrillex', async (handle) => {
+      expect(handle).toBe('skrillex');
+      return mockProfileUser;
+    });
+
+    expect(res.success).toBe(true);
+    expect(auth.isAuthenticated()).toBe(true);
+    expect(auth.getAuthType()).toBe('profile');
+    expect(auth.getUser()?.username).toBe('Skrillex');
+    expect(localStorage.getItem('sonicflow_sc_auth_type')).toBe('profile');
+    expect(localStorage.getItem('sonicflow_sc_profile_handle')).toBe('skrillex');
+    expect(localStorage.getItem('sonicflow_sc_user')).toContain('Skrillex');
+  });
+
+  it('SoundCloudAuth connects with token and saves account permanently', async () => {
+    const auth = SoundCloudAuth.getInstance();
+    auth.logout();
+
+    (global as any).fetch = async (url: string) => {
+      if (url.includes('/me?oauth_token=2-test-token-123')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            id: 9988,
+            username: 'TokenUser',
+            avatar_url: 'https://i1.sndcdn.com/avatars-token-large.jpg',
+            permalink_url: 'https://soundcloud.com/tokenuser',
+            likes_count: 88,
+          }),
+        };
+      }
+      return { ok: false, status: 401 };
+    };
+
+    const res = await auth.loginWithToken('2-test-token-123');
+    expect(res.success).toBe(true);
+    expect(auth.isAuthenticated()).toBe(true);
+    expect(auth.getToken()).toBe('2-test-token-123');
+    expect(auth.getUser()?.username).toBe('TokenUser');
+    expect(localStorage.getItem('sonicflow_sc_token')).toBe('2-test-token-123');
+    expect(localStorage.getItem('sonicflow_sc_user')).toContain('TokenUser');
   });
 
   it('SoundCloudClient maps raw tracks correctly with 500x500 cover art and URN support', async () => {
@@ -79,6 +137,19 @@ describe('SoundCloud Integration', () => {
     expect(mapped.provider).toBe('soundcloud');
   });
 
+  it('SoundCloudClient manages and persists client ID', () => {
+    const client = SoundCloudClient.getInstance();
+    expect(client.getClientId()).toBeTruthy();
+
+    client.setClientId('test_client_id_1234567890abcdef');
+    expect(client.getClientId()).toBe('test_client_id_1234567890abcdef');
+    expect(localStorage.getItem('sonicflow_sc_client_id')).toBe('test_client_id_1234567890abcdef');
+
+    // Reset back to verified default
+    client.setClientId(DEFAULT_CLIENT_ID);
+    expect(client.getClientId()).toBe(DEFAULT_CLIENT_ID);
+  });
+
   it('SoundCloudAuth.openInDefaultBrowser invokes browser launcher without errors', () => {
     let openedUrl = '';
     (global as any).window = {
@@ -94,4 +165,3 @@ describe('SoundCloud Integration', () => {
     expect(openedUrl).toBe('https://soundcloud.com/connect');
   });
 });
-

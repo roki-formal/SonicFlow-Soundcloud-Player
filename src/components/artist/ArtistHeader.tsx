@@ -1,15 +1,37 @@
 import React, { useState } from 'react';
-import { Play, Check, Plus } from 'lucide-react';
-import { TACO_ARTIST_PROFILE } from '../../core/music-providers/catalog';
+import { Play, Check, Plus, Radio, Zap } from 'lucide-react';
 import { usePlayer } from '../../core/player/PlayerContext';
+import { FEATURED_ARTIST_PROFILE } from '../../core/music-providers/catalog';
 
 export const ArtistHeader: React.FC = () => {
-  const { playTrack } = usePlayer();
-  const [isFollowed, setIsFollowed] = useState<boolean>(TACO_ARTIST_PROFILE.isFollowed);
+  const { 
+    playTrack, 
+    soundCloudUser, 
+    soundCloudLikes, 
+    activeArtist, 
+    setActiveArtist,
+    toggleLoginModal,
+    trendingTracks
+  } = usePlayer();
 
-  const handlePlayArtist = () => {
-    if (TACO_ARTIST_PROFILE.popularTracks.length > 0) {
-      playTrack(TACO_ARTIST_PROFILE.popularTracks[0], TACO_ARTIST_PROFILE.popularTracks);
+  const [isFollowed, setIsFollowed] = useState<boolean>(true);
+
+  // If user selected an artist from followings/search, show them;
+  // otherwise show logged-in SoundCloud user profile; otherwise show featured artist
+  const isUserProfile = !activeArtist && Boolean(soundCloudUser);
+  const title = activeArtist ? activeArtist.username : soundCloudUser ? soundCloudUser.username : FEATURED_ARTIST_PROFILE.name;
+  const avatar = activeArtist ? activeArtist.avatar_url : soundCloudUser?.avatar_url || FEATURED_ARTIST_PROFILE.avatarUrl;
+  const subtitle = activeArtist 
+    ? (activeArtist.city ? `${activeArtist.city}, ` : '') + (activeArtist.country || 'SoundCloud Артист')
+    : soundCloudUser 
+      ? `SoundCloud Аккаунт · ${soundCloudUser.likes_count ?? soundCloudLikes.length} лайков · ${soundCloudUser.playlist_count ?? 0} плейлистов`
+      : 'SoundCloud Featured Artist · 6.7M подписчиков';
+
+  const handlePlay = () => {
+    if (isUserProfile && soundCloudLikes.length > 0) {
+      playTrack(soundCloudLikes[0], soundCloudLikes);
+    } else if (trendingTracks.length > 0) {
+      playTrack(trendingTracks[0], trendingTracks);
     }
   };
 
@@ -18,120 +40,213 @@ export const ArtistHeader: React.FC = () => {
       style={{ 
         display: 'flex', 
         alignItems: 'center', 
+        justifyContent: 'space-between',
         gap: '24px', 
         padding: '28px 32px',
         margin: '16px 24px 8px 24px',
         borderRadius: 'var(--radius-panel, 16px)',
-        background: 'radial-gradient(ellipse 70% 100% at 10% 50%, rgba(var(--color-accent-rgb, 255, 85, 0), 0.12), transparent 80%), var(--color-bg-surface)',
-        border: '1px solid var(--color-border)',
+        background: 'radial-gradient(ellipse 70% 100% at 10% 50%, rgba(255, 85, 0, 0.16), transparent 80%), var(--color-bg-surface)',
+        border: '1px solid rgba(255, 85, 0, 0.25)',
         backdropFilter: 'blur(12px)',
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.25)',
         position: 'relative',
         overflow: 'hidden',
       }}
     >
-      {/* Circular Avatar with soft glow & play button overlay */}
-      <div 
-        className="card-interactive"
-        style={{ 
-          position: 'relative', 
-          width: '96px', 
-          height: '96px', 
-          borderRadius: '50%',
-          boxShadow: '0 0 35px rgba(var(--color-accent-rgb, 255, 85, 0), 0.35)',
-          cursor: 'pointer',
-          flexShrink: 0,
-        }}
-        onClick={handlePlayArtist}
-        title="Play Artist Top Tracks"
-      >
-        <img 
-          src={TACO_ARTIST_PROFILE.avatarUrl} 
-          alt={TACO_ARTIST_PROFILE.name}
-          style={{
-            width: '100%',
-            height: '100%',
-            borderRadius: '50%',
-            objectFit: 'cover',
-          }}
-        />
-        {/* Play Overlay Badge */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '24px', minWidth: 0 }}>
+        {/* Circular Avatar with soft glow & play button overlay */}
         <div 
-          style={{
-            position: 'absolute',
-            inset: 0,
+          className="card-interactive"
+          style={{ 
+            position: 'relative', 
+            width: '96px', 
+            height: '96px', 
             borderRadius: '50%',
-            backgroundColor: 'rgba(0, 0, 0, 0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: 0.9,
-            transition: 'opacity var(--transition-fast)',
+            boxShadow: '0 0 35px rgba(255, 85, 0, 0.35)',
+            cursor: 'pointer',
+            flexShrink: 0,
           }}
+          onClick={handlePlay}
+          title={isUserProfile ? "Слушать мои лайки" : "Воспроизвести треки"}
         >
+          <img 
+            src={avatar} 
+            alt={title}
+            style={{
+              width: '100%',
+              height: '100%',
+              borderRadius: '50%',
+              objectFit: 'cover',
+              border: '2px solid #ff5500',
+            }}
+          />
+          {/* Play Overlay Badge */}
           <div 
             style={{
-              width: '32px',
-              height: '32px',
+              position: 'absolute',
+              inset: 0,
               borderRadius: '50%',
-              backgroundColor: 'rgba(255, 255, 255, 0.25)',
-              backdropFilter: 'blur(8px)',
+              backgroundColor: 'rgba(0, 0, 0, 0.35)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#ffffff',
+              opacity: 0.9,
+              transition: 'opacity var(--transition-fast)',
             }}
           >
-            <Play size={16} fill="#ffffff" style={{ marginLeft: '2px' }} />
+            <div 
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                backgroundColor: '#ff5500',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ffffff',
+                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.4)',
+              }}
+            >
+              <Play size={18} fill="#ffffff" style={{ marginLeft: '2px' }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Info & Badges */}
+        <div style={{ minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+            <span 
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                color: '#ff5500',
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <Radio size={12} />
+              {isUserProfile ? 'Ваш профиль' : 'SoundCloud'}
+            </span>
+            {activeArtist && (
+              <button
+                onClick={() => setActiveArtist(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--color-text-muted)',
+                  fontSize: '11px',
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                }}
+              >
+                (назад к моему профилю)
+              </button>
+            )}
+          </div>
+
+          <h1 
+            style={{ 
+              fontSize: '34px', 
+              fontWeight: 800, 
+              letterSpacing: '-0.03em',
+              marginBottom: '6px',
+              color: 'var(--color-text-primary)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {title}
+          </h1>
+
+          <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', margin: '0 0 12px 0' }}>
+            {subtitle}
+          </p>
+
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              onClick={handlePlay}
+              className="btn-interactive"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '7px 18px',
+                borderRadius: '9999px',
+                backgroundColor: '#ff5500',
+                color: '#ffffff',
+                border: 'none',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(255, 85, 0, 0.35)',
+              }}
+            >
+              <Play size={14} fill="#ffffff" />
+              <span>{isUserProfile ? 'Слушать все лайки' : 'Слушать треки'}</span>
+            </button>
+
+            {!isUserProfile && (
+              <button
+                onClick={() => setIsFollowed(!isFollowed)}
+                className="btn-interactive"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 16px',
+                  borderRadius: '9999px',
+                  backgroundColor: isFollowed ? 'var(--color-bg-surface-active)' : 'var(--color-bg-surface)',
+                  border: '1px solid var(--color-border)',
+                  color: isFollowed ? '#ff5500' : 'var(--color-text-secondary)',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {isFollowed ? (
+                  <>
+                    <Check size={13} />
+                    <span>В подписках</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus size={13} />
+                    <span>Подписаться</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Artist Info & Follow */}
-      <div>
-        <h1 
-          style={{ 
-            fontSize: '38px', 
-            fontWeight: 800, 
-            letterSpacing: '-0.03em',
-            marginBottom: '10px',
-            color: 'var(--color-text-primary)',
-          }}
-        >
-          {TACO_ARTIST_PROFILE.name}
-        </h1>
-
+      {!soundCloudUser && (
         <button
-          onClick={() => setIsFollowed(!isFollowed)}
+          onClick={() => toggleLoginModal(true)}
           className="btn-interactive"
           style={{
-            display: 'inline-flex',
+            display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            padding: '5px 14px',
+            gap: '8px',
+            padding: '10px 18px',
             borderRadius: '9999px',
-            backgroundColor: isFollowed ? 'var(--color-bg-surface-active)' : 'var(--color-bg-surface)',
-            border: '1px solid var(--color-border)',
-            color: isFollowed ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+            backgroundColor: 'rgba(255, 85, 0, 0.15)',
+            border: '1px solid rgba(255, 85, 0, 0.4)',
+            color: '#ff5500',
             fontSize: '12px',
-            fontWeight: 500,
+            fontWeight: 700,
             cursor: 'pointer',
-            transition: 'all var(--transition-fast)',
+            whiteSpace: 'nowrap',
           }}
         >
-          {isFollowed ? (
-            <>
-              <Check size={13} style={{ color: 'var(--color-accent)' }} />
-              <span>Following</span>
-            </>
-          ) : (
-            <>
-              <Plus size={13} />
-              <span>Follow</span>
-            </>
-          )}
+          <Zap size={14} fill="currentColor" />
+          <span>Подключить свой аккаунт</span>
         </button>
-      </div>
+      )}
     </div>
   );
 };

@@ -27,8 +27,8 @@ export class StorageManager {
       if (favRaw) {
         this.favorites = new Set(JSON.parse(favRaw));
       } else {
-        // Pre-favorite a few tracks from initial catalog
-        this.favorites = new Set(['track-saldo-07', 'track-tip-toes', 'track-the-boy-is-mine', 'track-nie-ma-fal']);
+        // Pre-favorite real SoundCloud tracks if empty
+        this.favorites = new Set(['sc-1553270944', 'sc-2314914782', 'sc-2249133425']);
       }
 
       const histRaw = localStorage.getItem(HISTORY_KEY);

@@ -153,6 +153,70 @@ namespace SonicFlowLauncher
                     return;
                 }
 
+                // SoundCloud API Proxy endpoint to bypass CORS and CloudFront origin restrictions
+                if (context.Request.Url.AbsolutePath.StartsWith("/sc-api", StringComparison.OrdinalIgnoreCase))
+                {
+                    string subPath = context.Request.Url.AbsolutePath.Substring("/sc-api".Length);
+                    string target = "https://api-v2.soundcloud.com" + subPath + context.Request.Url.Query;
+
+                    try
+                    {
+                        // Enable TLS 1.2 in .NET 4.0
+                        ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072 | SecurityProtocolType.Tls;
+
+                        HttpWebRequest proxyReq = (HttpWebRequest)WebRequest.Create(target);
+                        proxyReq.Method = context.Request.HttpMethod;
+                        proxyReq.Headers["Origin"] = "https://soundcloud.com";
+                        proxyReq.Referer = "https://soundcloud.com/";
+                        proxyReq.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+                        proxyReq.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
+
+                        if (!string.IsNullOrEmpty(context.Request.Headers["Authorization"]))
+                        {
+                            proxyReq.Headers["Authorization"] = context.Request.Headers["Authorization"];
+                        }
+
+                        using (HttpWebResponse proxyResp = (HttpWebResponse)proxyReq.GetResponse())
+                        {
+                            context.Response.StatusCode = (int)proxyResp.StatusCode;
+                            context.Response.ContentType = proxyResp.ContentType;
+                            context.Response.Headers["Access-Control-Allow-Origin"] = "*";
+                            using (Stream inStream = proxyResp.GetResponseStream())
+                            {
+                                byte[] buffer = new byte[64 * 1024];
+                                int bytesRead;
+                                while ((bytesRead = inStream.Read(buffer, 0, buffer.Length)) > 0)
+                                {
+                                    context.Response.OutputStream.Write(buffer, 0, bytesRead);
+                                }
+                            }
+                            context.Response.OutputStream.Close();
+                            return;
+                        }
+                    }
+                    catch (WebException webEx)
+                    {
+                        HttpWebResponse errResp = webEx.Response as HttpWebResponse;
+                        if (errResp != null)
+                        {
+                            context.Response.StatusCode = (int)errResp.StatusCode;
+                            context.Response.ContentType = errResp.ContentType;
+                            context.Response.Headers["Access-Control-Allow-Origin"] = "*";
+                            using (Stream inStream = errResp.GetResponseStream())
+                            {
+                                byte[] buffer = new byte[16 * 1024];
+                                int bytesRead;
+                                while ((bytesRead = inStream.Read(buffer, 0, buffer.Length)) > 0)
+                                {
+                                    context.Response.OutputStream.Write(buffer, 0, bytesRead);
+                                }
+                            }
+                            context.Response.OutputStream.Close();
+                            return;
+                        }
+                    }
+                }
+
                 string rawUrl = context.Request.Url.AbsolutePath.TrimStart('/');
                 if (string.IsNullOrEmpty(rawUrl))
                 {

@@ -1,6 +1,6 @@
 {
   "name": "sonicflow",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "private": true,
   "description": "SonicFlow — Next-Gen Cross-Platform Music Player with SoundCloud integration, synced lyrics and customizable themes",
   "type": "module",
@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "build:exe": "npm run build && C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe /target:winexe /optimize+ /platform:anycpu /out:SonicFlow.exe /win32icon:app.ico /r:System.dll,System.Windows.Forms.dll,System.Drawing.dll src-launcher\\Program.cs",
+    "build:release": "node scripts/build-release.js",
     "build:electron": "vite build && electron-builder",
     "cap:sync": "cap sync"
   },
