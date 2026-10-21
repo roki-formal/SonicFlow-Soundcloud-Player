@@ -9,17 +9,41 @@ import {
   Sliders, 
   Palette, 
   ShieldCheck, 
-  AlertTriangle 
+  AlertTriangle,
+  Flame,
+  Activity,
+  Disc,
+  Type,
+  Code,
+  Zap,
+  Eye
 } from 'lucide-react';
 import { ThemeManager } from '../../core/themes/ThemeManager';
 import { calculateContrastRatio, isWcagAa } from '../../core/themes/contrast';
 import { ThemeDefinition } from '../../types';
 import { usePlayer } from '../../core/player/PlayerContext';
+import { 
+  VisualizerMode, 
+  AnimationPreset, 
+  FontPreset, 
+  VinylStyle 
+} from '../../core/settings/CustomizationManager';
+
+type StudioTab = 'themes' | 'atmosphere' | 'visualizer' | 'vinyl' | 'css';
 
 export const ThemeEditorModal: React.FC = () => {
-  const { isThemeEditorOpen, toggleThemeEditor } = usePlayer();
+  const { 
+    isThemeEditorOpen, 
+    toggleThemeEditor, 
+    customizationSettings, 
+    updateCustomizationSettings, 
+    resetCustomizationSettings,
+    currentTrack
+  } = usePlayer();
+
   const themeManager = useMemo(() => ThemeManager.getInstance(), []);
 
+  const [activeTab, setActiveTab] = useState<StudioTab>('themes');
   const [themes, setThemes] = useState<ThemeDefinition[]>([]);
   const [currentTheme, setCurrentTheme] = useState<ThemeDefinition>(themeManager.getCurrentTheme());
   
@@ -112,7 +136,8 @@ export const ThemeEditorModal: React.FC = () => {
 
   const handleResetDefaults = () => {
     handleSelectPreset('midnight-black');
-    setMessage({ text: 'Сброшено к теме по умолчанию (Midnight Black)', type: 'success' });
+    resetCustomizationSettings();
+    setMessage({ text: 'Сброшено к заводским настройкам темы и анимаций', type: 'success' });
   };
 
   return (
@@ -121,8 +146,8 @@ export const ThemeEditorModal: React.FC = () => {
         position: 'fixed',
         inset: 0,
         zIndex: 70,
-        backgroundColor: 'rgba(0, 0, 0, 0.75)',
-        backdropFilter: 'blur(10px)',
+        backgroundColor: 'rgba(0, 0, 0, 0.78)',
+        backdropFilter: 'blur(12px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -130,14 +155,15 @@ export const ThemeEditorModal: React.FC = () => {
       }}
     >
       <div 
+        className="animate-modal-pop"
         style={{
-          width: '680px',
+          width: '740px',
           maxWidth: '100%',
-          maxHeight: '90vh',
+          maxHeight: '92vh',
           backgroundColor: 'var(--color-bg-surface)',
           borderRadius: 'var(--radius-modal)',
           border: '1px solid var(--color-border)',
-          boxShadow: '0 25px 60px rgba(0, 0, 0, 0.5)',
+          boxShadow: '0 25px 70px rgba(0, 0, 0, 0.65), 0 0 40px var(--color-accent-subtle)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -146,16 +172,36 @@ export const ThemeEditorModal: React.FC = () => {
         {/* Header */}
         <div 
           style={{
-            padding: '20px 24px',
+            padding: '18px 24px',
             borderBottom: '1px solid var(--color-border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            backgroundColor: 'var(--color-bg-base)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Palette size={20} style={{ color: 'var(--color-accent)' }} />
-            <h2 style={{ fontSize: '18px', fontWeight: 700 }}>Theme Studio & Visual Editor</h2>
+            <div 
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                backgroundColor: 'var(--color-accent)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 0 12px var(--color-accent)',
+              }}
+            >
+              <Palette size={18} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '18px', fontWeight: 800 }}>Customization Studio</h2>
+              <p style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                Полная визуальная настройка, эффекты, винил и CSS
+              </p>
+            </div>
           </div>
 
           <button
@@ -165,16 +211,61 @@ export const ThemeEditorModal: React.FC = () => {
               border: 'none',
               color: 'var(--color-text-secondary)',
               cursor: 'pointer',
-              padding: '4px',
+              padding: '6px',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
             <X size={20} />
           </button>
         </div>
 
-        {/* Content Body */}
-        <div style={{ padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {/* Notification Alert */}
+        {/* Tab Navigation */}
+        <div 
+          style={{
+            display: 'flex',
+            borderBottom: '1px solid var(--color-border)',
+            backgroundColor: 'var(--color-bg-base)',
+            padding: '0 16px',
+            overflowX: 'auto',
+          }}
+        >
+          {[
+            { id: 'themes', label: 'Темы и цвета', icon: <Palette size={15} /> },
+            { id: 'atmosphere', label: 'Атмосфера и неон', icon: <Sparkles size={15} /> },
+            { id: 'visualizer', label: 'Визуализатор', icon: <Activity size={15} /> },
+            { id: 'vinyl', label: 'Винил и шрифты', icon: <Disc size={15} /> },
+            { id: 'css', label: 'Кастомный CSS', icon: <Code size={15} /> },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as StudioTab)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '12px 16px',
+                background: 'none',
+                border: 'none',
+                borderBottom: activeTab === tab.id ? '2px solid var(--color-accent)' : '2px solid transparent',
+                color: activeTab === tab.id ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
+                fontSize: '13px',
+                fontWeight: activeTab === tab.id ? 700 : 500,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'all var(--transition-fast)',
+              }}
+            >
+              {tab.icon}
+              <span>{tab.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Tab Content Body */}
+        <div style={{ padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '22px' }}>
           {message && (
             <div 
               style={{
@@ -193,282 +284,530 @@ export const ThemeEditorModal: React.FC = () => {
             </div>
           )}
 
-          {/* Preset Selector Grid */}
-          <div>
-            <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: '10px', display: 'block' }}>
-              Выберите готовую тему (9 пресетов)
-            </label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '10px' }}>
-              {themes.map((th) => {
-                const isSelected = currentTheme.id === th.id;
-                return (
+          {/* TAB 1: ТЕМЫ И ЦВЕТА */}
+          {activeTab === 'themes' && (
+            <>
+              {/* Presets */}
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: '10px', display: 'block' }}>
+                  Готовые темы (9 пресетов)
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                  {themes.map((th) => {
+                    const isSelected = currentTheme.id === th.id;
+                    return (
+                      <button
+                        key={th.id}
+                        onClick={() => handleSelectPreset(th.id)}
+                        className="btn-interactive"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '10px 12px',
+                          borderRadius: 'var(--radius-control)',
+                          backgroundColor: isSelected ? 'var(--color-bg-surface-active)' : 'var(--color-bg-base)',
+                          border: isSelected ? '2px solid var(--color-accent)' : '1px solid var(--color-border)',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          position: 'relative',
+                        }}
+                      >
+                        <div style={{ display: 'flex', gap: '3px', flexShrink: 0 }}>
+                          <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: th.preview.bg, border: '1px solid rgba(255,255,255,0.2)' }} />
+                          <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: th.preview.accent }} />
+                        </div>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-primary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {th.name}
+                        </span>
+                        {isSelected && <Check size={14} style={{ color: 'var(--color-accent)' }} />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Color Controls */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                <div style={{ padding: '14px', borderRadius: 'var(--radius-control)', backgroundColor: 'var(--color-bg-base)', border: '1px solid var(--color-border)' }}>
+                  <label style={{ fontSize: '12px', color: 'var(--color-text-secondary)', display: 'block', marginBottom: '6px' }}>
+                    Цвет акцента (Accent)
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <input 
+                      type="color" 
+                      value={accentColor} 
+                      onChange={(e) => {
+                        setAccentColor(e.target.value);
+                        handleApplyCustomToken('--color-accent', e.target.value);
+                      }}
+                      style={{ width: '36px', height: '36px', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: 'transparent' }}
+                    />
+                    <span style={{ fontSize: '13px', fontFamily: 'monospace' }}>{accentColor}</span>
+                  </div>
+                </div>
+
+                <div style={{ padding: '14px', borderRadius: 'var(--radius-control)', backgroundColor: 'var(--color-bg-base)', border: '1px solid var(--color-border)' }}>
+                  <label style={{ fontSize: '12px', color: 'var(--color-text-secondary)', display: 'block', marginBottom: '6px' }}>
+                    Цвет фона (Background Base)
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <input 
+                      type="color" 
+                      value={bgColor} 
+                      onChange={(e) => {
+                        setBgColor(e.target.value);
+                        handleApplyCustomToken('--color-bg-base', e.target.value);
+                      }}
+                      style={{ width: '36px', height: '36px', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: 'transparent' }}
+                    />
+                    <span style={{ fontSize: '13px', fontFamily: 'monospace' }}>{bgColor}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* WCAG Contrast Validator */}
+              <div 
+                style={{
+                  padding: '14px 18px',
+                  borderRadius: 'var(--radius-control)',
+                  backgroundColor: wcagPassed ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                  border: `1px solid ${wcagPassed ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <ShieldCheck size={18} style={{ color: wcagPassed ? '#10b981' : '#ef4444' }} />
+                  <div>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: wcagPassed ? '#10b981' : '#ef4444' }}>
+                      WCAG 2.2 AA: {wcagPassed ? 'Пройден (Pass)' : 'Низкий контраст'}
+                    </span>
+                    <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>
+                      Коэффициент читаемости текста: <strong>{contrastRatio.toFixed(2)}:1</strong> (норма от 4.5:1)
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card Radius Slider */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600 }}>Скругление карточек</span>
+                  <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{radiusCard}px</span>
+                </div>
+                <input 
+                  type="range"
+                  min={4}
+                  max={28}
+                  step={2}
+                  value={radiusCard}
+                  onChange={(e) => {
+                    const r = parseInt(e.target.value, 10);
+                    setRadiusCard(r);
+                    handleApplyCustomToken('--radius-card', `${r}px`);
+                  }}
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              {/* Import/Export buttons */}
+              <div style={{ display: 'flex', gap: '10px', paddingTop: '10px', borderTop: '1px solid var(--color-border)' }}>
+                <button
+                  onClick={handleExportJson}
+                  className="btn-interactive"
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    padding: '10px 14px',
+                    borderRadius: 'var(--radius-control)',
+                    backgroundColor: 'var(--color-bg-base)',
+                    border: '1px solid var(--color-border)',
+                    color: 'var(--color-text-primary)',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Download size={14} />
+                  <span>Экспорт JSON</span>
+                </button>
+
+                <input type="file" ref={fileInputRef} onChange={handleImportJson} accept=".json" style={{ display: 'none' }} />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="btn-interactive"
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    padding: '10px 14px',
+                    borderRadius: 'var(--radius-control)',
+                    backgroundColor: 'var(--color-bg-base)',
+                    border: '1px solid var(--color-border)',
+                    color: 'var(--color-text-primary)',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Upload size={14} />
+                  <span>Импорт JSON</span>
+                </button>
+
+                <button
+                  onClick={handleResetDefaults}
+                  className="btn-interactive"
+                  style={{
+                    padding: '10px 14px',
+                    borderRadius: 'var(--radius-control)',
+                    backgroundColor: 'var(--color-bg-base)',
+                    border: '1px solid var(--color-border)',
+                    color: 'var(--color-text-secondary)',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                  title="Сбросить все"
+                >
+                  <RotateCcw size={14} />
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* TAB 2: АТМОСФЕРА И НЕОН */}
+          {activeTab === 'atmosphere' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Dynamic Ambient Glow Switch */}
+              <div 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '16px',
+                  borderRadius: 'var(--radius-control)',
+                  backgroundColor: 'var(--color-bg-base)',
+                  border: '1px solid var(--color-border)',
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Sparkles size={16} color="#ff7700" />
+                    <span style={{ fontSize: '14px', fontWeight: 700 }}>Динамическая подсветка обложки (Ambient Glow)</span>
+                  </div>
+                  <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+                    Окрашивает фон в цвет текущего трека с кинематографичным размытием
+                  </p>
+                </div>
+
+                <input 
+                  type="checkbox"
+                  checked={customizationSettings.ambientGlowEnabled}
+                  onChange={(e) => updateCustomizationSettings({ ambientGlowEnabled: e.target.checked })}
+                  style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: 'var(--color-accent)' }}
+                />
+              </div>
+
+              {/* Audio Reactive Pulse */}
+              <div 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '16px',
+                  borderRadius: 'var(--radius-control)',
+                  backgroundColor: 'var(--color-bg-base)',
+                  border: '1px solid var(--color-border)',
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Flame size={16} color="#ff3300" />
+                    <span style={{ fontSize: '14px', fontWeight: 700 }}>Пульсация в такт музыке (Audio-Reactive)</span>
+                  </div>
+                  <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+                    Аура и подсветка плавно дышат в ритм басовых частот
+                  </p>
+                </div>
+
+                <input 
+                  type="checkbox"
+                  checked={customizationSettings.audioReactivePulse}
+                  onChange={(e) => updateCustomizationSettings({ audioReactivePulse: e.target.checked })}
+                  style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: 'var(--color-accent)' }}
+                />
+              </div>
+
+              {/* Glow Blur Intensity */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600 }}>Интенсивность размытия свечения (Blur)</span>
+                  <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{customizationSettings.ambientGlowBlur}px</span>
+                </div>
+                <input 
+                  type="range"
+                  min={20}
+                  max={120}
+                  step={5}
+                  value={customizationSettings.ambientGlowBlur}
+                  onChange={(e) => updateCustomizationSettings({ ambientGlowBlur: parseInt(e.target.value, 10) })}
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              {/* Glassmorphism Blur */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600 }}>Эффект матового стекла (Glassmorphism Blur)</span>
+                  <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{customizationSettings.glassmorphismBlur}px</span>
+                </div>
+                <input 
+                  type="range"
+                  min={0}
+                  max={30}
+                  step={2}
+                  value={customizationSettings.glassmorphismBlur}
+                  onChange={(e) => updateCustomizationSettings({ glassmorphismBlur: parseInt(e.target.value, 10) })}
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              {/* Animation Speed Presets */}
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 600, display: 'block', marginBottom: '8px' }}>
+                  Стиль и динамика интерфейсных анимаций
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                  {[
+                    { id: 'cinematic', label: 'Cinematic Smooth', desc: 'Плавная инерция (300ms)' },
+                    { id: 'snappy', label: 'Fast & Snappy', desc: 'Мгновенный отклик (150ms)' },
+                    { id: 'reduced', label: 'Reduced Motion', desc: 'Минимум движения' },
+                  ].map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => updateCustomizationSettings({ animationPreset: p.id as AnimationPreset })}
+                      className="btn-interactive"
+                      style={{
+                        padding: '12px',
+                        borderRadius: 'var(--radius-control)',
+                        backgroundColor: customizationSettings.animationPreset === p.id ? 'var(--color-bg-surface-active)' : 'var(--color-bg-base)',
+                        border: customizationSettings.animationPreset === p.id ? '2px solid var(--color-accent)' : '1px solid var(--color-border)',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{p.label}</div>
+                      <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px' }}>{p.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: ВИЗУАЛИЗАТОР */}
+          {activeTab === 'visualizer' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 600, display: 'block' }}>
+                Форма и режим визуализатора Web Audio
+              </label>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                {[
+                  { id: 'spectrum', label: 'Неоновая спектрограмма', desc: 'Столбцы частот с пиковыми значениями' },
+                  { id: 'wave', label: 'Звуковая волна', desc: 'Плавная синусоидальная кинетика' },
+                  { id: 'radial', label: 'Радиальный бит', desc: 'Круговое расширение от центра' },
+                  { id: 'minimal', label: 'Минималистичные точки', desc: 'Элегантные микро-индикаторы' },
+                ].map((mode) => (
                   <button
-                    key={th.id}
-                    onClick={() => handleSelectPreset(th.id)}
+                    key={mode.id}
+                    onClick={() => updateCustomizationSettings({ visualizerMode: mode.id as VisualizerMode })}
+                    className="btn-interactive"
                     style={{
-                      padding: '10px',
-                      borderRadius: '12px',
-                      backgroundColor: isSelected ? 'var(--color-bg-surface-active)' : 'var(--color-bg-base)',
-                      border: isSelected ? '2px solid var(--color-accent)' : '1px solid var(--color-border)',
-                      cursor: 'pointer',
+                      padding: '14px',
+                      borderRadius: 'var(--radius-control)',
+                      backgroundColor: customizationSettings.visualizerMode === mode.id ? 'var(--color-bg-surface-active)' : 'var(--color-bg-base)',
+                      border: customizationSettings.visualizerMode === mode.id ? '2px solid var(--color-accent)' : '1px solid var(--color-border)',
                       textAlign: 'left',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '8px',
+                      cursor: 'pointer',
                     }}
                   >
-                    {/* Swatch preview */}
-                    <div style={{ display: 'flex', gap: '4px', height: '14px', borderRadius: '4px', overflow: 'hidden' }}>
-                      <span style={{ flex: 1, backgroundColor: th.preview.bg }} />
-                      <span style={{ flex: 1, backgroundColor: th.preview.surface }} />
-                      <span style={{ flex: 1, backgroundColor: th.preview.accent }} />
-                    </div>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: isSelected ? 'var(--color-accent)' : 'var(--color-text-primary)' }}>
-                      {th.name}
-                    </span>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{mode.label}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '4px' }}>{mode.desc}</div>
                   </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Live Customizer Controls */}
-          <div style={{ backgroundColor: 'var(--color-bg-base)', padding: '18px', borderRadius: '16px', border: '1px solid var(--color-border)' }}>
-            <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Sliders size={16} style={{ color: 'var(--color-accent)' }} />
-              <span>Тонкая настройка CSS-токенов</span>
-            </h3>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              {/* Accent Color */}
-              <div>
-                <label style={{ fontSize: '12px', color: 'var(--color-text-secondary)', display: 'block', marginBottom: '6px' }}>
-                  Акцентный цвет (Accent)
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input 
-                    type="color" 
-                    value={accentColor}
-                    onChange={(e) => {
-                      setAccentColor(e.target.value);
-                      handleApplyCustomToken('--color-accent', e.target.value);
-                    }}
-                    style={{ width: '36px', height: '36px', borderRadius: '8px', border: 'none', cursor: 'pointer' }}
-                  />
-                  <span style={{ fontSize: '12px', fontFamily: 'monospace' }}>{accentColor}</span>
-                </div>
+                ))}
               </div>
 
-              {/* Background Color */}
-              <div>
-                <label style={{ fontSize: '12px', color: 'var(--color-text-secondary)', display: 'block', marginBottom: '6px' }}>
-                  Основной фон (Base Background)
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input 
-                    type="color" 
-                    value={bgColor}
-                    onChange={(e) => {
-                      setBgColor(e.target.value);
-                      handleApplyCustomToken('--color-bg-base', e.target.value);
-                    }}
-                    style={{ width: '36px', height: '36px', borderRadius: '8px', border: 'none', cursor: 'pointer' }}
-                  />
-                  <span style={{ fontSize: '12px', fontFamily: 'monospace' }}>{bgColor}</span>
-                </div>
-              </div>
-
-              {/* Surface Color */}
-              <div>
-                <label style={{ fontSize: '12px', color: 'var(--color-text-secondary)', display: 'block', marginBottom: '6px' }}>
-                  Цвет карточек (Surface)
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input 
-                    type="color" 
-                    value={surfaceColor}
-                    onChange={(e) => {
-                      setSurfaceColor(e.target.value);
-                      handleApplyCustomToken('--color-bg-surface', e.target.value);
-                    }}
-                    style={{ width: '36px', height: '36px', borderRadius: '8px', border: 'none', cursor: 'pointer' }}
-                  />
-                  <span style={{ fontSize: '12px', fontFamily: 'monospace' }}>{surfaceColor}</span>
-                </div>
-              </div>
-
-              {/* Text Color */}
-              <div>
-                <label style={{ fontSize: '12px', color: 'var(--color-text-secondary)', display: 'block', marginBottom: '6px' }}>
-                  Цвет текста (Text Primary)
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input 
-                    type="color" 
-                    value={textColor}
-                    onChange={(e) => {
-                      setTextColor(e.target.value);
-                      handleApplyCustomToken('--color-text-primary', e.target.value);
-                    }}
-                    style={{ width: '36px', height: '36px', borderRadius: '8px', border: 'none', cursor: 'pointer' }}
-                  />
-                  <span style={{ fontSize: '12px', fontFamily: 'monospace' }}>{textColor}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Radius Card Slider */}
-            <div style={{ marginTop: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '6px' }}>
-                <span style={{ color: 'var(--color-text-secondary)' }}>Скругление карточек (Border Radius)</span>
-                <span style={{ fontWeight: 600 }}>{radiusCard}px</span>
-              </div>
-              <input 
-                type="range"
-                min={4}
-                max={28}
-                value={radiusCard}
-                onChange={(e) => {
-                  const val = parseInt(e.target.value, 10);
-                  setRadiusCard(val);
-                  handleApplyCustomToken('--radius-card', `${val}px`);
+              {/* Visualizer Glow Checkbox */}
+              <div 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '14px 16px',
+                  borderRadius: 'var(--radius-control)',
+                  backgroundColor: 'var(--color-bg-base)',
+                  border: '1px solid var(--color-border)',
                 }}
-                style={{ width: '100%' }}
-              />
-            </div>
-
-            {/* WCAG 2.2 AA Contrast Checker Badge */}
-            <div 
-              style={{
-                marginTop: '16px',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                backgroundColor: wcagPassed ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
-                border: `1px solid ${wcagPassed ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {wcagPassed ? (
-                  <ShieldCheck size={18} style={{ color: '#10b981' }} />
-                ) : (
-                  <AlertTriangle size={18} style={{ color: '#f59e0b' }} />
-                )}
+              >
                 <div>
-                  <div style={{ fontSize: '12px', fontWeight: 600, color: wcagPassed ? '#10b981' : '#f59e0b' }}>
-                    {wcagPassed ? 'WCAG 2.2 AA Соответствие' : 'Низкий контраст (Warning)'}
-                  </div>
-                  <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                    Коэффициент контрастности текста: {contrastRatio}:1 (минимум 4.5:1)
-                  </div>
+                  <span style={{ fontSize: '13px', fontWeight: 700 }}>Неоновое свечение полос</span>
+                  <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                    Добавляет яркий световой ореол (glow effect) вокруг спектра
+                  </p>
+                </div>
+                <input 
+                  type="checkbox"
+                  checked={customizationSettings.visualizerGlow}
+                  onChange={(e) => updateCustomizationSettings({ visualizerGlow: e.target.checked })}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: 'var(--color-accent)' }}
+                />
+              </div>
+
+              {/* Number of Bars */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600 }}>Плотность частотных полос</span>
+                  <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{customizationSettings.visualizerBars} полос</span>
+                </div>
+                <input 
+                  type="range"
+                  min={16}
+                  max={64}
+                  step={8}
+                  value={customizationSettings.visualizerBars}
+                  onChange={(e) => updateCustomizationSettings({ visualizerBars: parseInt(e.target.value, 10) })}
+                  style={{ width: '100%' }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: ВИНИЛ И ШРИФТЫ */}
+          {activeTab === 'vinyl' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 600, display: 'block', marginBottom: '8px' }}>
+                  Скорость вращения винилового диска
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                  {[
+                    { rpm: 33, label: '33 RPM (Классика)', desc: '18 сек / оборот' },
+                    { rpm: 45, label: '45 RPM (Сингл)', desc: '12 сек / оборот' },
+                    { rpm: 0, label: 'Статично (0 RPM)', desc: 'Без вращения' },
+                  ].map((item) => (
+                    <button
+                      key={item.rpm}
+                      onClick={() => updateCustomizationSettings({ vinylSpeedRpm: item.rpm })}
+                      className="btn-interactive"
+                      style={{
+                        padding: '12px',
+                        borderRadius: 'var(--radius-control)',
+                        backgroundColor: customizationSettings.vinylSpeedRpm === item.rpm ? 'var(--color-bg-surface-active)' : 'var(--color-bg-base)',
+                        border: customizationSettings.vinylSpeedRpm === item.rpm ? '2px solid var(--color-accent)' : '1px solid var(--color-border)',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{item.label}</div>
+                      <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px' }}>{item.desc}</div>
+                    </button>
+                  ))}
                 </div>
               </div>
-              <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', backgroundColor: wcagPassed ? '#10b981' : '#f59e0b', color: '#ffffff' }}>
-                {contrastRatio}:1
-              </span>
+
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 600, display: 'block', marginBottom: '8px' }}>
+                  Типографика и шрифтовой пресет
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+                  {[
+                    { id: 'inter', label: 'Inter Modern', desc: 'Чистый гротеск (по умолчанию)' },
+                    { id: 'serif', label: 'Editorial Serif', desc: 'Журнальный элегантный шрифт' },
+                    { id: 'display', label: 'Cyberpunk Sans', desc: 'Системный технологичный гротеск' },
+                    { id: 'mono', label: 'Studio Mono', desc: 'Студийный моноширинный код' },
+                  ].map((f) => (
+                    <button
+                      key={f.id}
+                      onClick={() => updateCustomizationSettings({ fontPreset: f.id as FontPreset })}
+                      className="btn-interactive"
+                      style={{
+                        padding: '12px',
+                        borderRadius: 'var(--radius-control)',
+                        backgroundColor: customizationSettings.fontPreset === f.id ? 'var(--color-bg-surface-active)' : 'var(--color-bg-base)',
+                        border: customizationSettings.fontPreset === f.id ? '2px solid var(--color-accent)' : '1px solid var(--color-border)',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{f.label}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '2px' }}>{f.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          )}
 
-        {/* Footer Actions: Export, Import, Reset */}
-        <div 
-          style={{
-            padding: '16px 24px',
-            borderTop: '1px solid var(--color-border)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '10px',
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button
-              onClick={handleExportJson}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '8px 14px',
-                borderRadius: '8px',
-                backgroundColor: 'var(--color-bg-base)',
-                border: '1px solid var(--color-border)',
-                color: 'var(--color-text-primary)',
-                fontSize: '12px',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              <Download size={14} />
-              <span>Экспорт JSON</span>
-            </button>
+          {/* TAB 5: КАСТОМНЫЙ CSS */}
+          {activeTab === 'css' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <span style={{ fontSize: '13px', fontWeight: 700 }}>Редактор пользовательского CSS</span>
+                <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+                  Внесите любые собственные стили — они применяются к плееру в реальном времени!
+                </p>
+              </div>
 
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleImportJson} 
-              accept=".json" 
-              style={{ display: 'none' }} 
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '8px 14px',
-                borderRadius: '8px',
-                backgroundColor: 'var(--color-bg-base)',
-                border: '1px solid var(--color-border)',
-                color: 'var(--color-text-primary)',
-                fontSize: '12px',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              <Upload size={14} />
-              <span>Импорт JSON</span>
-            </button>
-          </div>
+              <textarea 
+                value={customizationSettings.customCss}
+                onChange={(e) => updateCustomizationSettings({ customCss: e.target.value })}
+                placeholder={`/* Пример пользовательских стилей */\n.card-interactive {\n  border-radius: 20px !important;\n}\n\nheader {\n  backdrop-filter: blur(20px);\n}`}
+                rows={10}
+                style={{
+                  width: '100%',
+                  padding: '12px 14px',
+                  borderRadius: 'var(--radius-control)',
+                  backgroundColor: '#07070a',
+                  border: '1px solid var(--color-border)',
+                  color: '#60a5fa',
+                  fontFamily: 'Consolas, monospace',
+                  fontSize: '12px',
+                  lineHeight: '1.5',
+                  outline: 'none',
+                  resize: 'vertical',
+                }}
+              />
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button
-              onClick={handleResetDefaults}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '8px 14px',
-                borderRadius: '8px',
-                backgroundColor: 'transparent',
-                border: 'none',
-                color: 'var(--color-text-secondary)',
-                fontSize: '12px',
-                cursor: 'pointer',
-              }}
-            >
-              <RotateCcw size={14} />
-              <span>Сбросить</span>
-            </button>
-
-            <button
-              onClick={() => toggleThemeEditor(false)}
-              style={{
-                padding: '8px 18px',
-                borderRadius: '8px',
-                backgroundColor: 'var(--color-accent)',
-                color: 'var(--color-accent-contrast)',
-                border: 'none',
-                fontSize: '13px',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              Готово
-            </button>
-          </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                  💡 Изменения сохраняются в локальном хранилище и действуют сразу
+                </span>
+                <button
+                  onClick={() => updateCustomizationSettings({ customCss: '' })}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                    color: '#ef4444',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Очистить CSS
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

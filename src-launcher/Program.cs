@@ -147,7 +147,6 @@ namespace SonicFlowLauncher
                     filePath = Path.Combine(_webRoot, "index.html");
                 }
 
-                byte[] buffer;
                 string mimeType = GetMimeType(filePath);
 
                 context.Response.ContentType = mimeType;

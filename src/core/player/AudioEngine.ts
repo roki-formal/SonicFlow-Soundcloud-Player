@@ -1,4 +1,5 @@
 import { AudioTrack } from '../../types';
+import Hls from 'hls.js';
 
 export type AudioEngineEvent = 
   | 'timeupdate'
@@ -14,6 +15,7 @@ type EventHandler = (...args: any[]) => void;
 export class AudioEngine {
   private static instance: AudioEngine;
   private audio: HTMLAudioElement;
+  private hls: Hls | null = null;
   private audioCtx: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
   private sourceNode: MediaElementAudioSourceNode | null = null;
@@ -95,9 +97,31 @@ export class AudioEngine {
 
   public async loadTrack(track: AudioTrack, autoPlay = true): Promise<void> {
     this.initAudioContext();
-    if (this.audio.src !== track.streamUrl) {
-      this.audio.src = track.streamUrl;
+
+    if (this.hls) {
+      this.hls.destroy();
+      this.hls = null;
+    }
+
+    const url = track.streamUrl;
+    const isHls = url.includes('.m3u8') || url.includes('/hls');
+
+    if (isHls && Hls.isSupported()) {
+      this.hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: false,
+      });
+      this.hls.loadSource(url);
+      this.hls.attachMedia(this.audio);
+    } else if (isHls && this.audio.canPlayType('application/vnd.apple.mpegurl')) {
+      // Native Apple WebKit HLS for iOS Safari & macOS
+      this.audio.src = url;
       this.audio.load();
+    } else {
+      if (this.audio.src !== url) {
+        this.audio.src = url;
+        this.audio.load();
+      }
     }
 
     this.updateMediaSession(track);

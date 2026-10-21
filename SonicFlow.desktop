@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=SonicFlow
+GenericName=SoundCloud Music Player
+Comment=Next-Gen Music Player with live SoundCloud account synchronization, synced lyrics and customizable themes
+Exec=bash -c "$(dirname %k)/sonicflow-linux.sh"
+Icon=sound-recorder
+Terminal=false
+Type=Application
+Categories=AudioVideo;Audio;Player;Music;
+StartupNotify=true
+StartupWMClass=SonicFlow
+Keywords=music;player;soundcloud;audio;lyrics;

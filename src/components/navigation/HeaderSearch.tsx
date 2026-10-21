@@ -20,20 +20,22 @@ export const HeaderSearch: React.FC = () => {
     toggleMute,
     audioFrequencies,
     isPlaying,
-    toggleThemeEditor
+    toggleThemeEditor,
+    customizationSettings
   } = usePlayer();
 
-  // Average 4 frequency bands for the 4 equalizer bars in the header
+  // Dynamic frequency bands adapted to customizationSettings
   const barHeights = React.useMemo(() => {
+    const barCount = customizationSettings?.visualizerMode === 'spectrum' ? 6 : 4;
     if (!isPlaying || !audioFrequencies || audioFrequencies.length === 0) {
-      return [4, 6, 8, 4];
+      return Array(barCount).fill(4);
     }
-    const b1 = Math.max(3, Math.min(18, (audioFrequencies[1] || 0) / 14));
-    const b2 = Math.max(3, Math.min(22, (audioFrequencies[4] || 0) / 11));
-    const b3 = Math.max(3, Math.min(20, (audioFrequencies[8] || 0) / 12));
-    const b4 = Math.max(3, Math.min(16, (audioFrequencies[14] || 0) / 16));
-    return [b1, b2, b3, b4];
-  }, [isPlaying, audioFrequencies]);
+    const step = Math.floor(audioFrequencies.length / barCount);
+    return Array.from({ length: barCount }, (_, i) => {
+      const freq = audioFrequencies[i * step] || 0;
+      return Math.max(3, Math.min(20, Math.round(freq / 12)));
+    });
+  }, [isPlaying, audioFrequencies, customizationSettings?.visualizerMode]);
 
   return (
     <header 
@@ -136,11 +138,12 @@ export const HeaderSearch: React.FC = () => {
             <span 
               key={i}
               style={{
-                width: '3px',
+                width: '3.5px',
                 height: `${h}px`,
                 backgroundColor: isPlaying ? 'var(--color-accent)' : 'var(--color-text-muted)',
-                borderRadius: '1px',
-                transition: 'height 80ms ease-out',
+                boxShadow: isPlaying && customizationSettings.visualizerGlow ? '0 0 8px var(--color-accent)' : 'none',
+                borderRadius: '2px',
+                transition: 'height 80ms ease-out, box-shadow 0.2s ease',
               }}
             />
           ))}

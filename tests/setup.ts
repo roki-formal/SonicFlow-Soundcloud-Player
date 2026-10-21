@@ -4,8 +4,19 @@ if (typeof window === 'undefined') {
   (global as any).window = {};
 }
 
-if (typeof document === 'undefined') {
+if (typeof document === 'undefined' || !(global as any).document?.getElementById) {
+  const elements: Record<string, any> = {};
   (global as any).document = {
+    head: {
+      appendChild: (node: any) => {
+        if (node.id) elements[node.id] = node;
+      },
+    },
+    getElementById: (id: string) => elements[id] || null,
+    createElement: (tag: string) => {
+      const el = { id: '', textContent: '', tag };
+      return el;
+    },
     documentElement: {
       setAttribute: () => {},
       style: {

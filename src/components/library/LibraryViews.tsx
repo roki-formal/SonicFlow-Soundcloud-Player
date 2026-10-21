@@ -123,55 +123,177 @@ export const LocalFilesView: React.FC = () => {
 };
 
 export const FavoritesView: React.FC = () => {
-  const { playTrack, isFavorite, toggleFavorite } = usePlayer();
-  const favTracks = INITIAL_TRACKS.filter((t) => isFavorite(t.id));
+  const { 
+    playTrack, 
+    isFavorite, 
+    toggleFavorite, 
+    soundCloudUser, 
+    soundCloudLikes,
+    toggleLoginModal,
+    syncSoundCloudData 
+  } = usePlayer();
+
+  const [activeTab, setActiveTab] = useState<'soundcloud' | 'local'>(soundCloudUser ? 'soundcloud' : 'local');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const localFavTracks = INITIAL_TRACKS.filter((t) => isFavorite(t.id));
+  const currentList = activeTab === 'soundcloud' && soundCloudUser ? soundCloudLikes : localFavTracks;
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await syncSoundCloudData();
+    setIsRefreshing(false);
+  };
 
   return (
     <div style={{ padding: '28px', maxWidth: '900px' }}>
-      <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '6px' }}>Favorites</h1>
-      <p style={{ color: 'var(--color-text-secondary)', fontSize: '13px', marginBottom: '24px' }}>
-        Ваши любимые композиции, отмеченные сердечком
-      </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <div>
+          <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '6px' }}>Favorites</h1>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '13px' }}>
+            Ваши любимые композиции и треки из SoundCloud
+          </p>
+        </div>
 
-      {favTracks.length === 0 ? (
+        {soundCloudUser && (
+          <button
+            onClick={handleRefresh}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 14px',
+              borderRadius: '9999px',
+              backgroundColor: 'var(--color-bg-surface)',
+              border: '1px solid var(--color-border)',
+              color: 'var(--color-text-primary)',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            <span>{isRefreshing ? 'Синхронизация...' : 'Обновить из SoundCloud'}</span>
+          </button>
+        )}
+      </div>
+
+      {/* Tabs if connected to SoundCloud */}
+      {soundCloudUser ? (
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+          <button
+            onClick={() => setActiveTab('soundcloud')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '9999px',
+              backgroundColor: activeTab === 'soundcloud' ? '#ff5500' : 'var(--color-bg-surface)',
+              color: activeTab === 'soundcloud' ? '#ffffff' : 'var(--color-text-secondary)',
+              border: 'none',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            SoundCloud Likes ({soundCloudLikes.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('local')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '9999px',
+              backgroundColor: activeTab === 'local' ? 'var(--color-accent)' : 'var(--color-bg-surface)',
+              color: activeTab === 'local' ? 'var(--color-accent-contrast)' : 'var(--color-text-secondary)',
+              border: 'none',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            Локальные ({localFavTracks.length})
+          </button>
+        </div>
+      ) : (
+        <div 
+          style={{
+            padding: '12px 18px',
+            borderRadius: '12px',
+            backgroundColor: 'rgba(255, 85, 0, 0.1)',
+            border: '1px solid rgba(255, 85, 0, 0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '20px',
+          }}
+        >
+          <span style={{ fontSize: '13px', color: 'var(--color-text-primary)' }}>
+            Хотите синхронизировать свои лайки с <strong>soundcloud.com/you/likes</strong>?
+          </span>
+          <button
+            onClick={() => toggleLoginModal(true)}
+            style={{
+              padding: '6px 14px',
+              borderRadius: '9999px',
+              backgroundColor: '#ff5500',
+              color: '#ffffff',
+              border: 'none',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            Войти в аккаунт
+          </button>
+        </div>
+      )}
+
+      {currentList.length === 0 ? (
         <div style={{ color: 'var(--color-text-muted)', fontSize: '14px', textAlign: 'center', padding: '60px 0' }}>
-          У вас пока нет избранных треков. Нажмите на сердечко у любого трека!
+          {activeTab === 'soundcloud'
+            ? 'В вашем SoundCloud аккаунте пока нет лайков или они загружаются...'
+            : 'У вас пока нет локальных избранных треков. Нажмите на сердечко у любого трека!'}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {favTracks.map((track) => (
-            <div
-              key={track.id}
-              onClick={() => playTrack(track, favTracks)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '10px 16px',
-                borderRadius: 'var(--radius-control)',
-                backgroundColor: 'var(--color-bg-surface)',
-                cursor: 'pointer',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <img src={track.coverUrl} alt="" style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover' }} />
-                <div>
-                  <div style={{ fontSize: '13px', fontWeight: 600 }}>{track.title}</div>
-                  <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{track.artist} · {track.album}</div>
+          {currentList.map((track) => {
+            const fav = isFavorite(track.id) || track.isFavorite;
+            return (
+              <div
+                key={track.id}
+                onClick={() => playTrack(track, currentList)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 16px',
+                  borderRadius: 'var(--radius-control)',
+                  backgroundColor: 'var(--color-bg-surface)',
+                  cursor: 'pointer',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                  <img src={track.coverUrl} alt="" style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover', flexShrink: 0 }} />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '13px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {track.title}
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {track.artist} · {track.album}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }} onClick={(e) => e.stopPropagation()}>
+                  <button
+                    onClick={() => toggleFavorite(track.id)}
+                    style={{ background: 'none', border: 'none', color: fav ? '#ef4444' : 'var(--color-text-muted)', cursor: 'pointer' }}
+                    title="Синхронизировать лайк в SoundCloud"
+                  >
+                    <Heart size={16} fill={fav ? '#ef4444' : 'none'} />
+                  </button>
+                  <Play size={16} fill="currentColor" onClick={() => playTrack(track, currentList)} style={{ cursor: 'pointer' }} />
                 </div>
               </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }} onClick={(e) => e.stopPropagation()}>
-                <button
-                  onClick={() => toggleFavorite(track.id)}
-                  style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}
-                >
-                  <Heart size={16} fill="#ef4444" />
-                </button>
-                <Play size={16} fill="currentColor" onClick={() => playTrack(track, favTracks)} style={{ cursor: 'pointer' }} />
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -179,7 +301,7 @@ export const FavoritesView: React.FC = () => {
 };
 
 export const PlaylistsView: React.FC = () => {
-  const { playTrack } = usePlayer();
+  const { playTrack, soundCloudUser, soundCloudPlaylists, toggleLoginModal } = usePlayer();
   const storage = StorageManager.getInstance();
   const [playlists, setPlaylists] = useState<StoredPlaylist[]>(storage.getPlaylists());
   const [newTitle, setNewTitle] = useState('');
@@ -205,7 +327,7 @@ export const PlaylistsView: React.FC = () => {
         <div>
           <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '6px' }}>Playlists</h1>
           <p style={{ color: 'var(--color-text-secondary)', fontSize: '13px' }}>
-            Ваши персональные музыкальные подборки
+            Ваши плейлисты из SoundCloud и локальные подборки
           </p>
         </div>
 
@@ -226,9 +348,78 @@ export const PlaylistsView: React.FC = () => {
           }}
         >
           <Plus size={16} />
-          <span>Создать плейлист</span>
+          <span>Создать локальный плейлист</span>
         </button>
       </div>
+
+      {/* SoundCloud Playlists section */}
+      {soundCloudUser && soundCloudPlaylists.length > 0 && (
+        <div style={{ marginBottom: '32px' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '14px', color: '#ff5500' }}>
+            Плейлисты из вашего аккаунта SoundCloud
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
+            {soundCloudPlaylists.map((pl) => (
+              <div
+                key={pl.id}
+                style={{
+                  backgroundColor: 'var(--color-bg-surface)',
+                  padding: '16px',
+                  borderRadius: 'var(--radius-card)',
+                  border: '1px solid rgba(255, 85, 0, 0.2)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  minHeight: '160px',
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                    {pl.coverUrl ? (
+                      <img src={pl.coverUrl} alt="" style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover' }} />
+                    ) : (
+                      <ListMusic size={28} style={{ color: '#ff5500' }} />
+                    )}
+                    <span style={{ fontSize: '10px', color: '#ff5500', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', backgroundColor: 'rgba(255, 85, 0, 0.15)' }}>
+                      SoundCloud
+                    </span>
+                  </div>
+                  <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '4px' }}>{pl.title}</h3>
+                  <p style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                    {pl.description || `${pl.tracks.length} треков`}
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    if (pl.tracks.length > 0) {
+                      playTrack(pl.tracks[0], pl.tracks);
+                    }
+                  }}
+                  style={{
+                    marginTop: '12px',
+                    padding: '6px 14px',
+                    borderRadius: '6px',
+                    backgroundColor: '#ff5500',
+                    border: 'none',
+                    color: '#ffffff',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    cursor: 'pointer',
+                    width: 'fit-content',
+                  }}
+                >
+                  <Play size={12} fill="currentColor" />
+                  <span>Слушать сет</span>
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {showCreate && (
         <form onSubmit={handleCreate} style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
@@ -263,6 +454,11 @@ export const PlaylistsView: React.FC = () => {
           </button>
         </form>
       )}
+
+      {/* Local playlists */}
+      <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '14px' }}>
+        Локальные плейлисты
+      </h2>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
         {playlists.map((pl) => (

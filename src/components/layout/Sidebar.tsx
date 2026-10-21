@@ -8,7 +8,9 @@ import {
   Search, 
   Palette, 
   Smartphone,
-  Radio
+  Radio,
+  RefreshCw,
+  Zap
 } from 'lucide-react';
 import { usePlayer, NavSection } from '../../core/player/PlayerContext';
 import { INITIAL_FRIENDS } from '../../core/music-providers/catalog';
@@ -19,7 +21,11 @@ export const Sidebar: React.FC = () => {
     setActiveSection, 
     toggleThemeEditor, 
     toggleMobileView,
-    isMobileView 
+    isMobileView,
+    soundCloudUser,
+    toggleLoginModal,
+    syncSoundCloudData,
+    isSyncing
   } = usePlayer();
 
   const navItems: { id: NavSection; label: string; icon: React.ReactNode }[] = [
@@ -208,8 +214,89 @@ export const Sidebar: React.FC = () => {
         </div>
       </div>
 
+      {/* SoundCloud Account / Sync Widget */}
+      <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--color-border)' }}>
+        {soundCloudUser ? (
+          <div 
+            onClick={() => toggleLoginModal(true)}
+            style={{
+              padding: '10px 12px',
+              borderRadius: 'var(--radius-control)',
+              backgroundColor: 'var(--color-bg-surface)',
+              border: '1px solid var(--color-border)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              position: 'relative',
+            }}
+            title="Нажмите для управления аккаунтом SoundCloud"
+          >
+            <img 
+              src={soundCloudUser.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200'}
+              alt={soundCloudUser.username}
+              style={{ width: '30px', height: '30px', borderRadius: '50%', objectFit: 'cover' }}
+            />
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {soundCloudUser.username}
+              </div>
+              <div style={{ fontSize: '10px', color: '#ff5500', fontWeight: 600 }}>
+                {isSyncing ? 'Синхронизация...' : 'SoundCloud Sync ✓'}
+              </div>
+            </div>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                syncSoundCloudData();
+              }}
+              disabled={isSyncing}
+              title="Синхронизировать сейчас"
+              style={{
+                background: 'none',
+                border: 'none',
+                color: isSyncing ? '#ff5500' : 'var(--color-text-secondary)',
+                cursor: 'pointer',
+                padding: '5px',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => toggleLoginModal(true)}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              padding: '10px 12px',
+              borderRadius: 'var(--radius-control)',
+              background: 'linear-gradient(135deg, #ff5500 0%, #ff2200 100%)',
+              color: '#ffffff',
+              border: 'none',
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(255, 85, 0, 0.35)',
+              transition: 'opacity var(--transition-fast)',
+            }}
+          >
+            <Zap size={15} fill="currentColor" />
+            <span>SoundCloud (1 клик)</span>
+          </button>
+        )}
+      </div>
+
       {/* Bottom Actions: Theme & Mobile Toggle */}
-      <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <button
           onClick={() => toggleThemeEditor(true)}
           style={{

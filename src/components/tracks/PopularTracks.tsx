@@ -39,15 +39,18 @@ export const PopularTracks: React.FC = () => {
             <div
               key={track.id}
               onClick={() => handleTrackClick(track)}
+              className="card-interactive"
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '8px 12px',
+                padding: '10px 14px',
                 borderRadius: 'var(--radius-control)',
                 backgroundColor: isCurrent ? 'var(--color-bg-surface-active)' : 'transparent',
+                borderLeft: isCurrent ? '3px solid var(--color-accent)' : '3px solid transparent',
+                boxShadow: isCurrent ? '0 4px 16px rgba(0, 0, 0, 0.25), inset 0 0 12px rgba(var(--color-accent-rgb, 255, 85, 0), 0.08)' : 'none',
                 cursor: 'pointer',
-                transition: 'background-color var(--transition-fast)',
+                transition: 'all var(--transition-fast)',
               }}
               onMouseEnter={(e) => {
                 if (!isCurrent) e.currentTarget.style.backgroundColor = 'var(--color-bg-surface-hover)';
@@ -72,7 +75,11 @@ export const PopularTracks: React.FC = () => {
                   }}
                 >
                   {isTrackPlaying ? (
-                    <Pause size={14} fill="currentColor" />
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '2px', height: '13px', paddingBottom: '1px' }}>
+                      <span style={{ width: '3px', height: '100%', background: 'var(--color-accent)', borderRadius: '2px', animation: 'neon-shimmer 0.7s ease-in-out infinite alternate' }} />
+                      <span style={{ width: '3px', height: '55%', background: 'var(--color-accent)', borderRadius: '2px', animation: 'neon-shimmer 0.5s ease-in-out 0.15s infinite alternate' }} />
+                      <span style={{ width: '3px', height: '85%', background: 'var(--color-accent)', borderRadius: '2px', animation: 'neon-shimmer 0.8s ease-in-out 0.3s infinite alternate' }} />
+                    </div>
                   ) : (
                     <span>{idx + 1}</span>
                   )}

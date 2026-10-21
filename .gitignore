@@ -11,5 +11,6 @@ yarn-debug.log*
 yarn-error.log*
 .idea/
 .vscode/
-ios/App/public
-ios/App/Pods
+ios/App/App/public/
+ios/App/Pods/
+ios/Pods/

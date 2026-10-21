@@ -56,10 +56,13 @@ export const AlbumShelf: React.FC = () => {
           <div 
             key={album.id}
             onClick={() => handlePlayAlbum(album.title)}
+            className="card-interactive"
             style={{ 
               cursor: 'pointer',
               display: 'flex',
               flexDirection: 'column',
+              padding: '6px',
+              borderRadius: 'var(--radius-card)',
             }}
           >
             {/* Album Cover */}

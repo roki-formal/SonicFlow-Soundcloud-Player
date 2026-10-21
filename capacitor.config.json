@@ -2,7 +2,6 @@
   "appId": "com.sonicflow.player",
   "appName": "SonicFlow",
   "webDir": "dist",
-  "bundledWebRuntime": false,
   "ios": {
     "contentInset": "always",
     "allowsLinkPreview": false,

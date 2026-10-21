@@ -37,7 +37,8 @@ export const QueuePanel: React.FC = () => {
     toggleLyrics,
     isFavorite,
     toggleFavorite,
-    toggleThemeEditor
+    toggleThemeEditor,
+    customizationSettings
   } = usePlayer();
 
   const formatTime = (secs: number) => {
@@ -176,43 +177,53 @@ export const QueuePanel: React.FC = () => {
             </button>
           </div>
 
-          {/* Rotating Vinyl Circle with Album Cover */}
+          {/* Rotating Vinyl Circle with Album Cover and Grooves */}
           <div 
             style={{
               position: 'relative',
-              width: '74px',
-              height: '74px',
+              width: '80px',
+              height: '80px',
               borderRadius: '50%',
-              backgroundColor: '#121212',
-              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.5)',
+              backgroundColor: '#111115',
+              boxShadow: customizationSettings.visualizerGlow 
+                ? '0 6px 20px rgba(0, 0, 0, 0.6), 0 0 15px var(--color-accent-subtle)' 
+                : '0 6px 20px rgba(0, 0, 0, 0.6)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               marginBottom: '14px',
+              border: customizationSettings.vinylStyle === 'gold' 
+                ? '2px solid #d4af37' 
+                : customizationSettings.vinylStyle === 'neon' 
+                  ? '2px solid var(--color-accent)' 
+                  : '1px solid rgba(255, 255, 255, 0.1)',
             }}
           >
             <div 
-              className={`animate-spin-slow ${!isPlaying ? 'animation-paused' : ''}`}
+              className={`animate-spin-slow ${!isPlaying || customizationSettings.vinylSpeedRpm === 0 ? 'animation-paused' : ''}`}
               style={{
                 position: 'relative',
-                width: '74px',
-                height: '74px',
+                width: '80px',
+                height: '80px',
                 borderRadius: '50%',
                 overflow: 'hidden',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: 'radial-gradient(circle, #2a2a2a 20%, #111111 70%, #000000 100%)',
+                background: customizationSettings.vinylStyle === 'matte'
+                  ? 'radial-gradient(circle, #1f1f25 20%, #121217 70%, #08080a 100%)'
+                  : 'radial-gradient(circle, #2a2a30 20%, #15151b 50%, #22222a 65%, #0d0d12 100%)',
               }}
             >
               <img 
                 src={currentTrack.coverUrl} 
                 alt={currentTrack.title}
                 style={{
-                  width: '42px',
-                  height: '42px',
+                  width: '44px',
+                  height: '44px',
                   borderRadius: '50%',
                   objectFit: 'cover',
+                  boxShadow: '0 0 0 2px rgba(0, 0, 0, 0.8)',
                 }}
               />
               {/* Spindle hole */}

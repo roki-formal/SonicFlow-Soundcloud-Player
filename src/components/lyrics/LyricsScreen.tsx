@@ -336,18 +336,22 @@ export const LyricsScreen: React.FC = () => {
                   onClick={() => parsedLyrics.isSynced && seek(line.time)}
                   style={{
                     fontSize: isActive ? fontSizeStyles.active : fontSizeStyles.inactive,
-                    fontWeight: isActive ? 800 : 700,
+                    fontWeight: isActive ? 800 : 600,
                     letterSpacing: '-0.02em',
-                    lineHeight: '1.35',
-                    margin: '24px 0',
+                    lineHeight: '1.4',
+                    margin: isActive ? '32px 0' : '22px 0',
                     color: isActive 
-                      ? '#ffffff' 
+                      ? (lyricsTab === 'karaoke' ? 'var(--color-accent)' : '#ffffff') 
                       : isPast 
-                        ? 'rgba(255, 255, 255, 0.25)' 
-                        : 'rgba(255, 255, 255, 0.45)',
+                        ? 'rgba(255, 255, 255, 0.28)' 
+                        : 'rgba(255, 255, 255, 0.55)',
+                    textShadow: isActive 
+                      ? '0 0 30px rgba(var(--color-accent-rgb, 255, 85, 0), 0.55), 0 4px 14px rgba(0, 0, 0, 0.8)' 
+                      : 'none',
+                    filter: !isActive && activeIndex !== -1 ? 'blur(0.3px)' : 'none',
                     cursor: parsedLyrics.isSynced ? 'pointer' : 'default',
-                    transition: 'all 220ms ease-out',
-                    transform: isActive ? 'scale(1.04)' : 'scale(1.0)',
+                    transition: 'all 280ms cubic-bezier(0.16, 1, 0.3, 1)',
+                    transform: isActive ? 'scale(1.06)' : 'scale(1.0)',
                   }}
                 >
                   {line.text}

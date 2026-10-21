@@ -1,9 +1,13 @@
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
-import { AudioTrack, RepeatMode, LyricsTab } from '../../types';
+import { AudioTrack, RepeatMode, LyricsTab, StoredPlaylist } from '../../types';
 import { AudioEngine } from './AudioEngine';
 import { PlaybackQueue } from './PlaybackQueue';
 import { INITIAL_TRACKS } from '../music-providers/catalog';
 import { StorageManager } from '../storage/StorageManager';
+import { SoundCloudAuth } from '../soundcloud/SoundCloudAuth';
+import { SoundCloudClient } from '../soundcloud/SoundCloudClient';
+import { SoundCloudUser } from '../soundcloud/SoundCloudTypes';
+import { CustomizationManager, CustomizationSettings } from '../settings/CustomizationManager';
 
 export type NavSection = 'home' | 'albums' | 'local' | 'favorites' | 'playlists';
 
@@ -25,6 +29,14 @@ interface PlayerContextValue {
   activeSection: NavSection;
   searchQuery: string;
   audioFrequencies: Uint8Array;
+  soundCloudUser: SoundCloudUser | null;
+  isSoundCloudLoggedIn: boolean;
+  isLoginModalOpen: boolean;
+  soundCloudLikes: AudioTrack[];
+  soundCloudStream: AudioTrack[];
+  soundCloudPlaylists: StoredPlaylist[];
+  isSyncing: boolean;
+  customizationSettings: CustomizationSettings;
 
   // Actions
   playTrack: (track: AudioTrack, newQueue?: AudioTrack[]) => void;
@@ -43,6 +55,10 @@ interface PlayerContextValue {
   setLyricsTab: (tab: LyricsTab) => void;
   toggleThemeEditor: (open?: boolean) => void;
   toggleMobileView: (mobile?: boolean) => void;
+  toggleLoginModal: (open?: boolean) => void;
+  syncSoundCloudData: () => Promise<void>;
+  updateCustomizationSettings: (partial: Partial<CustomizationSettings>) => void;
+  resetCustomizationSettings: () => void;
   setActiveSection: (section: NavSection) => void;
   setSearchQuery: (q: string) => void;
   toggleFavorite: (trackId: string) => void;
@@ -55,6 +71,23 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const engine = useMemo(() => AudioEngine.getInstance(), []);
   const storage = useMemo(() => StorageManager.getInstance(), []);
   const queueManager = useMemo(() => new PlaybackQueue(INITIAL_TRACKS), []);
+  const scAuth = useMemo(() => SoundCloudAuth.getInstance(), []);
+  const scClient = useMemo(() => SoundCloudClient.getInstance(), []);
+  const customManager = useMemo(() => CustomizationManager.getInstance(), []);
+
+  const [customizationSettings, setCustomizationSettings] = useState<CustomizationSettings>(customManager.getSettings());
+
+  useEffect(() => {
+    return customManager.subscribe((s) => setCustomizationSettings(s));
+  }, [customManager]);
+
+  const updateCustomizationSettings = useCallback((partial: Partial<CustomizationSettings>) => {
+    customManager.updateSettings(partial);
+  }, [customManager]);
+
+  const resetCustomizationSettings = useCallback(() => {
+    customManager.resetToDefaults();
+  }, [customManager]);
 
   const [currentTrack, setCurrentTrack] = useState<AudioTrack | null>(INITIAL_TRACKS[0]);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -74,6 +107,52 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [audioFrequencies, setAudioFrequencies] = useState<Uint8Array>(new Uint8Array(32));
   const [, setFavTick] = useState<number>(0);
+
+  // SoundCloud state
+  const [soundCloudUser, setSoundCloudUser] = useState<SoundCloudUser | null>(scAuth.getUser());
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
+  const [soundCloudLikes, setSoundCloudLikes] = useState<AudioTrack[]>([]);
+  const [soundCloudStream, setSoundCloudStream] = useState<AudioTrack[]>([]);
+  const [soundCloudPlaylists, setSoundCloudPlaylists] = useState<StoredPlaylist[]>([]);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
+  // Synchronize SoundCloud data
+  const syncSoundCloudData = useCallback(async () => {
+    if (!scAuth.isAuthenticated()) return;
+    setIsSyncing(true);
+    try {
+      const [likes, stream, playlists] = await Promise.all([
+        scClient.getMyLikes(50),
+        scClient.getMyStream(40),
+        scClient.getMyPlaylists(),
+      ]);
+      setSoundCloudLikes(likes);
+      setSoundCloudStream(stream);
+      setSoundCloudPlaylists(playlists);
+    } catch (e) {
+      console.error('Error synchronizing SoundCloud data:', e);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [scAuth, scClient]);
+
+  // Subscribe to SoundCloud auth changes
+  useEffect(() => {
+    const unsub = scAuth.subscribe((user) => {
+      setSoundCloudUser(user);
+      if (user) {
+        syncSoundCloudData();
+      } else {
+        setSoundCloudLikes([]);
+        setSoundCloudStream([]);
+        setSoundCloudPlaylists([]);
+      }
+    });
+    if (scAuth.isAuthenticated()) {
+      syncSoundCloudData();
+    }
+    return unsub;
+  }, [scAuth, syncSoundCloudData]);
 
   // Sync queue updates
   useEffect(() => {
@@ -309,12 +388,23 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setIsMobileView((prev) => (mobile !== undefined ? mobile : !prev));
   }, []);
 
+  const toggleLoginModal = useCallback((open?: boolean) => {
+    setIsLoginModalOpen((prev) => (open !== undefined ? open : !prev));
+  }, []);
+
   const toggleFavorite = useCallback(
-    (trackId: string) => {
-      storage.toggleFavorite(trackId);
+    async (trackId: string) => {
+      const isNowFav = storage.toggleFavorite(trackId);
       setFavTick((t) => t + 1);
+
+      // If track is from SoundCloud or user is authenticated, sync like with soundcloud.com
+      if (scAuth.isAuthenticated()) {
+        await scClient.syncLike(trackId, isNowFav);
+        // Refresh likes list in background
+        scClient.getMyLikes(50).then((likes) => setSoundCloudLikes(likes)).catch(() => {});
+      }
     },
-    [storage]
+    [storage, scAuth, scClient]
   );
 
   const isFavorite = useCallback(
@@ -342,6 +432,14 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     activeSection,
     searchQuery,
     audioFrequencies,
+    soundCloudUser,
+    isSoundCloudLoggedIn: Boolean(soundCloudUser),
+    isLoginModalOpen,
+    soundCloudLikes,
+    soundCloudStream,
+    soundCloudPlaylists,
+    isSyncing,
+    customizationSettings,
     playTrack,
     togglePlay,
     pause,
@@ -358,6 +456,10 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setLyricsTab,
     toggleThemeEditor,
     toggleMobileView,
+    toggleLoginModal,
+    syncSoundCloudData,
+    updateCustomizationSettings,
+    resetCustomizationSettings,
     setActiveSection,
     setSearchQuery,
     toggleFavorite,

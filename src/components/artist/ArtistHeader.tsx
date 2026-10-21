@@ -19,17 +19,26 @@ export const ArtistHeader: React.FC = () => {
         display: 'flex', 
         alignItems: 'center', 
         gap: '24px', 
-        padding: '24px 28px',
+        padding: '28px 32px',
+        margin: '16px 24px 8px 24px',
+        borderRadius: 'var(--radius-panel, 16px)',
+        background: 'radial-gradient(ellipse 70% 100% at 10% 50%, rgba(var(--color-accent-rgb, 255, 85, 0), 0.12), transparent 80%), var(--color-bg-surface)',
+        border: '1px solid var(--color-border)',
+        backdropFilter: 'blur(12px)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.25)',
+        position: 'relative',
+        overflow: 'hidden',
       }}
     >
       {/* Circular Avatar with soft glow & play button overlay */}
       <div 
+        className="card-interactive"
         style={{ 
           position: 'relative', 
           width: '96px', 
           height: '96px', 
           borderRadius: '50%',
-          boxShadow: '0 0 35px rgba(168, 85, 247, 0.35)',
+          boxShadow: '0 0 35px rgba(var(--color-accent-rgb, 255, 85, 0), 0.35)',
           cursor: 'pointer',
           flexShrink: 0,
         }}
@@ -94,6 +103,7 @@ export const ArtistHeader: React.FC = () => {
 
         <button
           onClick={() => setIsFollowed(!isFollowed)}
+          className="btn-interactive"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
