@@ -301,7 +301,7 @@ export const Sidebar: React.FC = () => {
         )}
       </div>
 
-      {/* Bottom Actions: Theme & Mobile Toggle */}
+      {/* Bottom Actions: Theme */}
       <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <button
           onClick={() => toggleThemeEditor(true)}

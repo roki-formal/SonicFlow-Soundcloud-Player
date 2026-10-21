@@ -7,17 +7,19 @@
 
 ## 📦 Скачать готовые приложения (Releases v1.2.0)
 
-Готовые скомпилированные сборки плеера для всех поддерживаемых систем:
+[![GitHub Release](https://img.shields.io/github/v/release/roki-formal/SonicFlow-Soundcloud-Player?color=orange&label=GitHub%20Release&logo=github)](https://github.com/roki-formal/SonicFlow-Soundcloud-Player/releases/latest)
+
+Готовые скомпилированные сборки плеера для всех поддерживаемых систем доступны на официальной странице [**GitHub Releases v1.2.0**](https://github.com/roki-formal/SonicFlow-Soundcloud-Player/releases/tag/v1.2.0):
 
 | Платформа | Файл загрузки | Инструкция по запуску / установке |
 |---|---|---|
-| **Windows 10 / 11** | [**`SonicFlow-Windows-x64.zip`**](release/SonicFlow-Windows-x64.zip) | Распаковать архив и запустить `SonicFlow.exe` |
-| **iOS (iPhone & iPad)** | [**`SonicFlow.ipa`**](release/SonicFlow.ipa) | Установить через **AltStore**, **Sideloadly** или **TrollStore** |
-| **Arch Linux** | [**`sonicflow-1.2.0-1-x86_64.pkg.tar.zst`**](release/sonicflow-1.2.0-1-x86_64.pkg.tar.zst) | `sudo pacman -U sonicflow-1.2.0-1-x86_64.pkg.tar.zst` |
-| **Arch Linux (AUR)** | [**`PKGBUILD`**](PKGBUILD) | Сборка через `makepkg -si` в директории с `PKGBUILD` |
-| **Linux (Все дистрибутивы)** | [**`SonicFlow-Linux-x86_64.tar.gz`**](release/SonicFlow-Linux-x86_64.tar.gz) | Распаковать и выполнить `./sonicflow-linux.sh` или `./install.sh` |
+| **Windows 10 / 11** | [**`SonicFlow-Windows-x64.zip`**](https://github.com/roki-formal/SonicFlow-Soundcloud-Player/releases/download/v1.2.0/SonicFlow-Windows-x64.zip) / [**`SonicFlow.exe`**](https://github.com/roki-formal/SonicFlow-Soundcloud-Player/releases/download/v1.2.0/SonicFlow.exe) | Распаковать архив и запустить `SonicFlow.exe` |
+| **iOS (iPhone & iPad)** | [**`SonicFlow.ipa`**](https://github.com/roki-formal/SonicFlow-Soundcloud-Player/releases/download/v1.2.0/SonicFlow.ipa) | Установить через **AltStore**, **Sideloadly** или **TrollStore** |
+| **Arch Linux** | [**`sonicflow-1.2.0-1-x86_64.pkg.tar.zst`**](https://github.com/roki-formal/SonicFlow-Soundcloud-Player/releases/download/v1.2.0/sonicflow-1.2.0-1-x86_64.pkg.tar.zst) | `sudo pacman -U sonicflow-1.2.0-1-x86_64.pkg.tar.zst` |
+| **Arch Linux (AUR)** | [**`PKGBUILD`**](https://github.com/roki-formal/SonicFlow-Soundcloud-Player/releases/download/v1.2.0/PKGBUILD) | Сборка через `makepkg -si` в директории с `PKGBUILD` |
+| **Linux (Все дистрибутивы)** | [**`SonicFlow-Linux-x86_64.tar.gz`**](https://github.com/roki-formal/SonicFlow-Soundcloud-Player/releases/download/v1.2.0/SonicFlow-Linux-x86_64.tar.gz) | Распаковать и выполнить `./sonicflow-linux.sh` или `./install.sh` |
 
-> Все хеш-суммы SHA-256 доступны в файле [SHA256SUMS.txt](release/SHA256SUMS.txt).
+> Все хеш-суммы SHA-256 доступны в файле [SHA256SUMS.txt](https://github.com/roki-formal/SonicFlow-Soundcloud-Player/releases/download/v1.2.0/SHA256SUMS.txt).
 
 ---
 

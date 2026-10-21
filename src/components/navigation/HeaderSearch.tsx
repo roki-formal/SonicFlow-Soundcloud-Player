@@ -21,7 +21,8 @@ export const HeaderSearch: React.FC = () => {
     audioFrequencies,
     isPlaying,
     toggleThemeEditor,
-    customizationSettings
+    customizationSettings,
+    isMobileView
   } = usePlayer();
 
   // Dynamic frequency bands adapted to customizationSettings
@@ -43,52 +44,54 @@ export const HeaderSearch: React.FC = () => {
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'space-between',
-        padding: '16px 28px',
-        gap: '20px',
+        padding: isMobileView ? '10px 16px' : '16px 28px',
+        gap: isMobileView ? '10px' : '20px',
         borderBottom: '1px solid var(--color-border)',
         backgroundColor: 'var(--color-bg-base)',
       }}
     >
-      {/* Navigation history controls */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <button
-          style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '50%',
-            backgroundColor: 'var(--color-bg-surface)',
-            border: '1px solid var(--color-border)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--color-text-secondary)',
-            cursor: 'pointer',
-          }}
-          title="Back"
-        >
-          <ChevronLeft size={16} />
-        </button>
-        <button
-          style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '50%',
-            backgroundColor: 'var(--color-bg-surface)',
-            border: '1px solid var(--color-border)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--color-text-muted)',
-            cursor: 'pointer',
-          }}
-          title="Forward"
-        >
-          <ChevronRight size={16} />
-        </button>
-      </div>
+      {/* Navigation history controls (desktop only) */}
+      {!isMobileView && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              backgroundColor: 'var(--color-bg-surface)',
+              border: '1px solid var(--color-border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--color-text-secondary)',
+              cursor: 'pointer',
+            }}
+            title="Back"
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <button
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              backgroundColor: 'var(--color-bg-surface)',
+              border: '1px solid var(--color-border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--color-text-muted)',
+              cursor: 'pointer',
+            }}
+            title="Forward"
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      )}
 
       {/* Central Search Bar */}
-      <div style={{ flex: 1, maxWidth: '460px', position: 'relative' }}>
+      <div style={{ flex: 1, maxWidth: isMobileView ? '100%' : '460px', position: 'relative' }}>
         <input 
           type="text"
           value={searchQuery}
@@ -121,8 +124,8 @@ export const HeaderSearch: React.FC = () => {
         />
       </div>
 
-      {/* Right controls: Visualizer, Volume, Theme Button */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+      {/* Right controls: Visualizer & (Desktop only) Volume, Theme Button */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobileView ? '8px' : '20px' }}>
         {/* Animated 4-bar Audio Visualizer */}
         <div 
           style={{ 
@@ -149,49 +152,53 @@ export const HeaderSearch: React.FC = () => {
           ))}
         </div>
 
-        {/* Volume Slider */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <button 
-            onClick={toggleMute}
-            style={{ 
-              background: 'none', 
-              border: 'none', 
-              color: isMuted ? 'var(--color-text-muted)' : 'var(--color-text-secondary)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-            }}
-          >
-            {isMuted || volume === 0 ? <VolumeX size={17} /> : <Volume2 size={17} />}
-          </button>
-          <input 
-            type="range"
-            min={0}
-            max={1}
-            step={0.02}
-            value={isMuted ? 0 : volume}
-            onChange={(e) => setVolume(parseFloat(e.target.value))}
-            style={{ width: '70px' }}
-          />
-        </div>
+        {!isMobileView && (
+          <>
+            {/* Volume Slider */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button 
+                onClick={toggleMute}
+                style={{ 
+                  background: 'none', 
+                  border: 'none', 
+                  color: isMuted ? 'var(--color-text-muted)' : 'var(--color-text-secondary)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                {isMuted || volume === 0 ? <VolumeX size={17} /> : <Volume2 size={17} />}
+              </button>
+              <input 
+                type="range"
+                min={0}
+                max={1}
+                step={0.02}
+                value={isMuted ? 0 : volume}
+                onChange={(e) => setVolume(parseFloat(e.target.value))}
+                style={{ width: '70px' }}
+              />
+            </div>
 
-        {/* Theme Settings quick button */}
-        <button
-          onClick={() => toggleThemeEditor(true)}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--color-text-secondary)',
-            cursor: 'pointer',
-            padding: '4px',
-            display: 'flex',
-            alignItems: 'center',
-            borderRadius: '6px',
-          }}
-          title="Customize Theme"
-        >
-          <SlidersHorizontal size={17} />
-        </button>
+            {/* Theme Settings quick button */}
+            <button
+              onClick={() => toggleThemeEditor(true)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--color-text-secondary)',
+                cursor: 'pointer',
+                padding: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                borderRadius: '6px',
+              }}
+              title="Customize Theme"
+            >
+              <SlidersHorizontal size={17} />
+            </button>
+          </>
+        )}
       </div>
     </header>
   );

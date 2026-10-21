@@ -17,7 +17,7 @@ import { INITIAL_TRACKS } from '../../core/music-providers/catalog';
 import { AudioTrack, StoredPlaylist } from '../../types';
 
 export const LocalFilesView: React.FC = () => {
-  const { playTrack } = usePlayer();
+  const { playTrack, isMobileView } = usePlayer();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [localTracks, setLocalTracks] = useState<AudioTrack[]>([]);
   const [provider] = useState(() => new LocalFilesProvider());
@@ -32,7 +32,7 @@ export const LocalFilesView: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '28px', maxWidth: '900px' }}>
+    <div style={{ padding: isMobileView ? '16px' : '28px', maxWidth: '900px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
           <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '6px' }}>Local Files</h1>
@@ -130,7 +130,8 @@ export const FavoritesView: React.FC = () => {
     soundCloudUser, 
     soundCloudLikes,
     toggleLoginModal,
-    syncSoundCloudData 
+    syncSoundCloudData,
+    isMobileView
   } = usePlayer();
 
   const [activeTab, setActiveTab] = useState<'soundcloud' | 'local'>(soundCloudUser ? 'soundcloud' : 'local');
@@ -146,7 +147,7 @@ export const FavoritesView: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '28px', maxWidth: '900px' }}>
+    <div style={{ padding: isMobileView ? '16px' : '28px', maxWidth: '900px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <div>
           <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '6px' }}>Favorites</h1>
@@ -301,7 +302,7 @@ export const FavoritesView: React.FC = () => {
 };
 
 export const PlaylistsView: React.FC = () => {
-  const { playTrack, soundCloudUser, soundCloudPlaylists, toggleLoginModal } = usePlayer();
+  const { playTrack, soundCloudUser, soundCloudPlaylists, toggleLoginModal, isMobileView } = usePlayer();
   const storage = StorageManager.getInstance();
   const [playlists, setPlaylists] = useState<StoredPlaylist[]>(storage.getPlaylists());
   const [newTitle, setNewTitle] = useState('');
@@ -322,7 +323,7 @@ export const PlaylistsView: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '28px', maxWidth: '900px' }}>
+    <div style={{ padding: isMobileView ? '16px' : '28px', maxWidth: '900px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
           <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '6px' }}>Playlists</h1>

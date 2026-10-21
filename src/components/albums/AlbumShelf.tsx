@@ -4,7 +4,7 @@ import { usePlayer } from '../../core/player/PlayerContext';
 import { StoredPlaylist } from '../../types';
 
 export const AlbumShelf: React.FC = () => {
-  const { playTrack, soundCloudPlaylists, trendingPlaylists, soundCloudUser } = usePlayer();
+  const { playTrack, soundCloudPlaylists, trendingPlaylists, soundCloudUser, isMobileView } = usePlayer();
 
   const displayPlaylists: StoredPlaylist[] = soundCloudPlaylists.length > 0 
     ? soundCloudPlaylists 
@@ -23,7 +23,7 @@ export const AlbumShelf: React.FC = () => {
   }
 
   return (
-    <section style={{ padding: '0 28px 24px 28px' }}>
+    <section style={{ padding: isMobileView ? '0 16px 20px 16px' : '0 28px 24px 28px' }}>
       {/* Section Header */}
       <div 
         style={{ 

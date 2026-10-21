@@ -14,7 +14,7 @@ optdepends=(
     'nodejs: Fast local preview server runtime'
 )
 source=("https://github.com/roki-formal/SonicFlow-Soundcloud-Player/releases/download/v${pkgver}/SonicFlow-Linux-x86_64.tar.gz")
-sha256sums=('feb1b2e2b71b4865d8de6c3137ccbc1016906ef64d2abef8d685ba2c017b4c39')
+sha256sums=('636fc3563a9c479766a62f915015f7528c5e02a8b9e44fdb06de6bf13b8a624e')
 
 package() {
     cd "$srcdir/SonicFlow-Linux-x86_64"

@@ -11,7 +11,8 @@ export const ArtistHeader: React.FC = () => {
     activeArtist, 
     setActiveArtist,
     toggleLoginModal,
-    trendingTracks
+    trendingTracks,
+    isMobileView
   } = usePlayer();
 
   const [isFollowed, setIsFollowed] = useState<boolean>(true);
@@ -39,11 +40,12 @@ export const ArtistHeader: React.FC = () => {
     <div 
       style={{ 
         display: 'flex', 
-        alignItems: 'center', 
+        flexDirection: isMobileView ? 'column' : 'row',
+        alignItems: isMobileView ? 'stretch' : 'center', 
         justifyContent: 'space-between',
-        gap: '24px', 
-        padding: '28px 32px',
-        margin: '16px 24px 8px 24px',
+        gap: isMobileView ? '16px' : '24px', 
+        padding: isMobileView ? '16px' : '28px 32px',
+        margin: isMobileView ? '12px 16px 8px 16px' : '16px 24px 8px 24px',
         borderRadius: 'var(--radius-panel, 16px)',
         background: 'radial-gradient(ellipse 70% 100% at 10% 50%, rgba(255, 85, 0, 0.16), transparent 80%), var(--color-bg-surface)',
         border: '1px solid rgba(255, 85, 0, 0.25)',
@@ -53,14 +55,14 @@ export const ArtistHeader: React.FC = () => {
         overflow: 'hidden',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '24px', minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobileView ? '16px' : '24px', minWidth: 0 }}>
         {/* Circular Avatar with soft glow & play button overlay */}
         <div 
           className="card-interactive"
           style={{ 
             position: 'relative', 
-            width: '96px', 
-            height: '96px', 
+            width: isMobileView ? '70px' : '96px', 
+            height: isMobileView ? '70px' : '96px', 
             borderRadius: '50%',
             boxShadow: '0 0 35px rgba(255, 85, 0, 0.35)',
             cursor: 'pointer',
@@ -149,10 +151,10 @@ export const ArtistHeader: React.FC = () => {
 
           <h1 
             style={{ 
-              fontSize: '34px', 
+              fontSize: isMobileView ? '22px' : '34px', 
               fontWeight: 800, 
               letterSpacing: '-0.03em',
-              marginBottom: '6px',
+              marginBottom: '4px',
               color: 'var(--color-text-primary)',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
