@@ -9,14 +9,14 @@ import {
   Shuffle, 
   Repeat, 
   Heart, 
-  Upload, 
   Volume2, 
   Type,
-  Maximize2,
-  Minimize2
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 import { usePlayer } from '../../core/player/PlayerContext';
-import { LrcParser } from '../../core/lyrics/LrcParser';
+import { LrcParser, ParsedLrcResult } from '../../core/lyrics/LrcParser';
+import { LyricsFetcher } from '../../core/lyrics/LyricsFetcher';
 import { LyricsTab } from '../../types';
 
 export const LyricsScreen: React.FC = () => {
@@ -48,26 +48,45 @@ export const LyricsScreen: React.FC = () => {
   const scrollTimeoutRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const activeLineRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [importedLrc, setImportedLrc] = useState<string | null>(null);
 
-  // Parse lyrics from current track or imported LRC
+  const [autoLyrics, setAutoLyrics] = useState<ParsedLrcResult | null>(null);
+  const [isLoadingLyrics, setIsLoadingLyrics] = useState<boolean>(false);
+
+  // Automatically fetch lyrics on track change
+  useEffect(() => {
+    if (!currentTrack) return;
+
+    if (currentTrack.lyricsLrc) {
+      setAutoLyrics(LrcParser.parse(currentTrack.lyricsLrc));
+      setIsLoadingLyrics(false);
+      return;
+    }
+
+    setIsLoadingLyrics(true);
+    LyricsFetcher.fetchLyrics(currentTrack.artist, currentTrack.title)
+      .then((res) => {
+        setAutoLyrics(res);
+      })
+      .catch(() => {
+        setAutoLyrics({ lines: [], isSynced: false, metadata: {} });
+      })
+      .finally(() => {
+        setIsLoadingLyrics(false);
+      });
+  }, [currentTrack?.id, currentTrack?.artist, currentTrack?.title]);
+
   const parsedLyrics = useMemo(() => {
-    const raw = importedLrc || currentTrack?.lyricsLrc || '';
+    if (autoLyrics) return autoLyrics;
+    const raw = currentTrack?.lyricsLrc || '';
     if (!raw) return { lines: [], isSynced: false, metadata: {} };
     return LrcParser.parse(raw);
-  }, [importedLrc, currentTrack]);
+  }, [autoLyrics, currentTrack]);
 
   // Find active line index
   const activeIndex = useMemo(() => {
     if (!parsedLyrics.isSynced || lyricsTab === 'unsynced') return -1;
     return LrcParser.findActiveIndex(parsedLyrics.lines, currentTime);
   }, [parsedLyrics, currentTime, lyricsTab]);
-
-  // Reset imported lyrics when track changes
-  useEffect(() => {
-    setImportedLrc(null);
-  }, [currentTrack?.id]);
 
   // Auto-scroll to active line
   useEffect(() => {
@@ -90,20 +109,6 @@ export const LyricsScreen: React.FC = () => {
     scrollTimeoutRef.current = window.setTimeout(() => {
       setUserScrolled(false);
     }, 4000);
-  };
-
-  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      if (text) {
-        setImportedLrc(text);
-      }
-    };
-    reader.readAsText(file);
   };
 
   const formatTime = (secs: number) => {
@@ -197,7 +202,7 @@ export const LyricsScreen: React.FC = () => {
           })}
         </div>
 
-        {/* Font size & Import LRC buttons */}
+        {/* Font size & Auto-Sync Status */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button
             onClick={() => {
@@ -221,32 +226,22 @@ export const LyricsScreen: React.FC = () => {
             <span style={{ textTransform: 'capitalize' }}>{fontSize}</span>
           </button>
 
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleImportFile} 
-            accept=".lrc,.txt" 
-            style={{ display: 'none' }} 
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
+          <div
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
               padding: '6px 12px',
-              borderRadius: '8px',
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              border: 'none',
-              color: '#ffffff',
+              borderRadius: '9999px',
+              backgroundColor: 'rgba(255, 255, 255, 0.08)',
+              color: 'var(--color-accent)',
               fontSize: '12px',
-              cursor: 'pointer',
+              fontWeight: 600,
             }}
-            title="Import custom LRC or TXT"
           >
-            <Upload size={14} />
-            <span>Import LRC</span>
-          </button>
+            <Sparkles size={14} />
+            <span>Auto Lyrics</span>
+          </div>
 
           <button
             onClick={() => toggleLyrics(false)}
@@ -361,20 +356,7 @@ export const LyricsScreen: React.FC = () => {
           </div>
         ) : (
           <div style={{ marginTop: '100px', textAlign: 'center', color: 'rgba(255, 255, 255, 0.5)' }}>
-            <p style={{ fontSize: '18px', marginBottom: '16px' }}>Текст для этого трека пока не найден</p>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              style={{
-                padding: '10px 20px',
-                borderRadius: '8px',
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                border: 'none',
-                color: '#ffffff',
-                cursor: 'pointer',
-              }}
-            >
-              Загрузить .lrc файл
-            </button>
+            <p style={{ fontSize: '18px', marginBottom: '16px' }}>Текст для этого трека генерируется...</p>
           </div>
         )}
 
@@ -388,7 +370,7 @@ export const LyricsScreen: React.FC = () => {
             color: 'rgba(255, 255, 255, 0.4)' 
           }}
         >
-          Provided by {importedLrc ? 'Local LRC File' : 'Netease & LRCLIB'}
+          Provided by LRCLIB & SonicFlow Auto STT
         </div>
       </div>
 
