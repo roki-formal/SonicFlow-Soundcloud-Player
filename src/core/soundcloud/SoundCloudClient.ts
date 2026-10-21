@@ -61,21 +61,23 @@ export class SoundCloudClient {
     }
 
     // Попытка 2: Через медиа-транскодинг SoundCloud
-    try {
-      const sep = rawMediaUrl.includes('?') ? '&' : '?';
-      const fetchUrl = `${rawMediaUrl}${sep}${this.getAuthParams()}`;
-      const res = await fetch(fetchUrl, {
-        headers: this.auth.getAuthHeaders(),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.url) {
-          this.streamUrlCache.set(rawMediaUrl, data.url);
-          return data.url;
+    if (rawMediaUrl && rawMediaUrl.startsWith('http')) {
+      try {
+        const sep = rawMediaUrl.includes('?') ? '&' : '?';
+        const fetchUrl = `${rawMediaUrl}${sep}${this.getAuthParams()}`;
+        const res = await fetch(fetchUrl, {
+          headers: this.auth.getAuthHeaders(),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.url) {
+            this.streamUrlCache.set(rawMediaUrl, data.url);
+            return data.url;
+          }
         }
+      } catch (e) {
+        console.warn('Failed to resolve SoundCloud stream transcoding:', e);
       }
-    } catch (e) {
-      console.warn('Failed to resolve SoundCloud stream transcoding:', e);
     }
 
     return rawMediaUrl;
@@ -85,24 +87,45 @@ export class SoundCloudClient {
    * Transforms raw SoundCloud track into our unified AudioTrack model
    */
   public async mapTrack(raw: SoundCloudRawTrack): Promise<AudioTrack> {
+    if (!raw) {
+      return {
+        id: `sc-${Date.now()}`,
+        title: 'Unknown Track',
+        artist: 'SoundCloud Artist',
+        album: 'SoundCloud',
+        year: new Date().getFullYear(),
+        duration: 180,
+        coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500',
+        streamUrl: 'https://cdn.freesound.org/previews/612/612610_5674468-lq.mp3',
+        provider: 'soundcloud',
+        isFavorite: false,
+      };
+    }
+
     const transcodings = raw.media?.transcodings || [];
     const progressive = transcodings.find((t) => t.format?.protocol === 'progressive');
     const hls = transcodings.find((t) => t.format?.protocol === 'hls');
-    const mediaTrans = progressive || hls;
+    const mediaTrans = progressive || hls || transcodings[0];
 
     let streamUrl = raw.stream_url || '';
     if (!streamUrl && mediaTrans?.url) {
       streamUrl = await this.resolveStreamUrl(mediaTrans.url, raw.urn || raw.id);
     }
 
+    if (!streamUrl && (raw.id || raw.urn)) {
+      // Fallback try resolving stream directly by URN/ID via scnative gateway
+      streamUrl = await this.resolveStreamUrl('', raw.urn || raw.id);
+    }
+
     let coverUrl = raw.artwork_url || raw.user?.avatar_url || '';
     if (coverUrl) {
-      coverUrl = coverUrl.replace('-large', '-t500x500');
+      coverUrl = coverUrl.replace('-large', '-t500x500').replace('-badge', '-t500x500');
     } else {
       coverUrl = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500';
     }
 
-    const trackId = raw.id ? `sc-${raw.id}` : `sc-${raw.urn?.replace('soundcloud:tracks:', '') || Date.now()}`;
+    const rawId = raw.id || raw.urn?.replace('soundcloud:tracks:', '');
+    const trackId = rawId ? `sc-${rawId}` : `sc-${Date.now()}`;
 
     return {
       id: trackId,
@@ -110,7 +133,7 @@ export class SoundCloudClient {
       artist: raw.user?.username || 'SoundCloud Artist',
       album: 'SoundCloud',
       year: raw.created_at ? new Date(raw.created_at).getFullYear() : new Date().getFullYear(),
-      duration: Math.round((raw.duration || 0) / 1000),
+      duration: Math.round((raw.duration || 0) / 1000) || 180,
       coverUrl,
       streamUrl: streamUrl || 'https://cdn.freesound.org/previews/612/612610_5674468-lq.mp3',
       provider: 'soundcloud',
