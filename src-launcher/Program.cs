@@ -131,6 +131,28 @@ namespace SonicFlowLauncher
             HttpListenerContext context = (HttpListenerContext)state;
             try
             {
+                // Native API endpoint: Open URL in default system browser
+                if (context.Request.Url.AbsolutePath.Equals("/api/open-browser", StringComparison.OrdinalIgnoreCase))
+                {
+                    string targetUrl = context.Request.QueryString["url"];
+                    if (!string.IsNullOrEmpty(targetUrl) && (targetUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase) || targetUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        try
+                        {
+                            Process.Start(new ProcessStartInfo(targetUrl) { UseShellExecute = true });
+                        }
+                        catch { }
+                    }
+                    byte[] resp = Encoding.UTF8.GetBytes("{\"success\":true}");
+                    context.Response.ContentType = "application/json";
+                    context.Response.Headers["Access-Control-Allow-Origin"] = "*";
+                    context.Response.StatusCode = (int)HttpStatusCode.OK;
+                    context.Response.ContentLength64 = resp.Length;
+                    context.Response.OutputStream.Write(resp, 0, resp.Length);
+                    context.Response.OutputStream.Close();
+                    return;
+                }
+
                 string rawUrl = context.Request.Url.AbsolutePath.TrimStart('/');
                 if (string.IsNullOrEmpty(rawUrl))
                 {

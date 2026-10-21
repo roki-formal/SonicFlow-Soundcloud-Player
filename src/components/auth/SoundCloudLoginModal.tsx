@@ -36,6 +36,13 @@ export const SoundCloudLoginModal: React.FC<SoundCloudLoginModalProps> = ({ isOp
     return auth.subscribe((u) => setUser(u));
   }, [auth]);
 
+  // Автоматически запускаем авторизацию в браузере по умолчанию при открытии модалки
+  React.useEffect(() => {
+    if (isOpen && !user && oauthStep === 'idle' && !showManualInput) {
+      handleOAuthLogin();
+    }
+  }, [isOpen, user, oauthStep, showManualInput]);
+
   if (!isOpen) return null;
 
   // 1-Click OAuth Login Flow
@@ -339,14 +346,14 @@ export const SoundCloudLoginModal: React.FC<SoundCloudLoginModalProps> = ({ isOp
 
                   <div>
                     <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '6px' }}>
-                      {oauthStep === 'opening' && 'Открываем окно авторизации SoundCloud...'}
-                      {oauthStep === 'waiting' && 'Ожидание подтверждения входа...'}
+                      {oauthStep === 'opening' && 'Открываем страницу входа в браузере...'}
+                      {oauthStep === 'waiting' && 'Ожидание подтверждения в браузере...'}
                       {oauthStep === 'token' && 'Получение сессии SoundCloud...'}
                       {oauthStep === 'extract' && 'Загрузка профиля и треков...'}
                       {oauthStep === 'finalizing' && 'Синхронизация вашей медиатеки...'}
                     </h3>
-                    <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', lineHeight: '1.5', maxWidth: '360px' }}>
-                      В открывшемся окне браузера нажмите кнопку <strong>«Connect with SoundCloud»</strong> или войдите в свой аккаунт.
+                    <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', lineHeight: '1.5', maxWidth: '380px' }}>
+                      Окно авторизации открыто в вашем <strong>браузере по умолчанию</strong>. Нажмите <strong>«Connect with SoundCloud»</strong> на открывшейся странице soundcloud.com. Приложение автоматически подхватит вход.
                     </p>
                   </div>
 
@@ -368,7 +375,7 @@ export const SoundCloudLoginModal: React.FC<SoundCloudLoginModalProps> = ({ isOp
                       }}
                     >
                       <ExternalLink size={14} />
-                      <span>Открыть окно повторно</span>
+                      <span>Открыть в браузере снова</span>
                     </button>
 
                     <button
@@ -402,12 +409,12 @@ export const SoundCloudLoginModal: React.FC<SoundCloudLoginModalProps> = ({ isOp
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                       <Sparkles size={16} color="#ff7700" />
                       <span style={{ fontSize: '13px', fontWeight: 700, color: '#ff7700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        Вход в 1 клик
+                        Вход через браузер по умолчанию
                       </span>
                     </div>
 
                     <p style={{ fontSize: '13px', color: 'var(--color-text-primary)', lineHeight: '1.5', marginBottom: '16px' }}>
-                      Нажмите кнопку ниже, чтобы автоматически подключить ваш аккаунт <strong>SoundCloud</strong> и мгновенно синхронизировать <strong>избранное (Likes)</strong>, <strong>плейлисты</strong> и <strong>персональную ленту</strong>.
+                      Нажмите кнопку ниже, чтобы открыть страницу авторизации <strong>SoundCloud</strong> в вашем системном браузере по умолчанию. После входа ваше <strong>избранное (Likes)</strong>, <strong>плейлисты</strong> и <strong>лента</strong> будут мгновенно синхронизированы.
                     </p>
 
                     <button
@@ -432,7 +439,7 @@ export const SoundCloudLoginModal: React.FC<SoundCloudLoginModalProps> = ({ isOp
                       }}
                     >
                       <Zap size={18} fill="currentColor" />
-                      <span>{loading ? 'Подключение...' : 'Войти через SoundCloud (1 клик)'}</span>
+                      <span>{loading ? 'Открываем браузер...' : 'Войти в браузере по умолчанию (1 клик)'}</span>
                     </button>
                   </div>
 

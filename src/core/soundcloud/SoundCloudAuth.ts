@@ -101,12 +101,8 @@ export class SoundCloudAuth {
       this.activeLoginRequestId = data.loginRequestId;
       this.activeAuthUrl = data.url;
 
-      // Открываем страницу авторизации SoundCloud в браузере
-      try {
-        window.open(data.url, '_blank', 'noopener,noreferrer,width=600,height=750');
-      } catch (e) {
-        console.warn('Could not open browser window directly:', e);
-      }
+      // Открываем страницу авторизации SoundCloud в браузере по умолчанию
+      SoundCloudAuth.openInDefaultBrowser(data.url);
 
       if (onStepChange) onStepChange('waiting');
       this.isPollingActive = true;
@@ -121,13 +117,32 @@ export class SoundCloudAuth {
     }
   }
 
+  /**
+   * Открывает URL в браузере пользователя по умолчанию.
+   * 1. В лаунчере SonicFlow вызывает /api/open-browser, запуская системный браузер Windows.
+   * 2. В веб-режиме открывает полноценную вкладку.
+   */
+  public static openInDefaultBrowser(url: string): void {
+    if (!url || typeof window === 'undefined') return;
+
+    // Вызываем нативный API лаунчера для открытия системного браузера по умолчанию
+    fetch(`/api/open-browser?url=${encodeURIComponent(url)}`).catch(() => {});
+
+    // В обычном браузере также открываем стандартную вкладку (без popup размеров)
+    try {
+      window.open(url, '_blank');
+    } catch (e) {
+      console.warn('Could not open tab:', e);
+    }
+  }
+
   public getActiveAuthUrl(): string | null {
     return this.activeAuthUrl;
   }
 
   public reopenAuthUrl(): void {
     if (this.activeAuthUrl) {
-      window.open(this.activeAuthUrl, '_blank', 'noopener,noreferrer,width=600,height=750');
+      SoundCloudAuth.openInDefaultBrowser(this.activeAuthUrl);
     }
   }
 

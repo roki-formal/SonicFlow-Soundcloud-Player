@@ -271,6 +271,8 @@ export const Sidebar: React.FC = () => {
         ) : (
           <button
             onClick={() => toggleLoginModal(true)}
+            className="btn-interactive"
+            title="Войти в аккаунт SoundCloud через браузер по умолчанию"
             style={{
               width: '100%',
               display: 'flex',
@@ -286,11 +288,11 @@ export const Sidebar: React.FC = () => {
               fontWeight: 700,
               cursor: 'pointer',
               boxShadow: '0 4px 12px rgba(255, 85, 0, 0.35)',
-              transition: 'opacity var(--transition-fast)',
+              transition: 'all var(--transition-fast)',
             }}
           >
             <Zap size={15} fill="currentColor" />
-            <span>SoundCloud (1 клик)</span>
+            <span>Войти в SoundCloud</span>
           </button>
         )}
       </div>

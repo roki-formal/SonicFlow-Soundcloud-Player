@@ -78,4 +78,20 @@ describe('SoundCloud Integration', () => {
     expect(mapped.coverUrl).toBe('https://i1.sndcdn.com/artworks-xyz-t500x500.jpg');
     expect(mapped.provider).toBe('soundcloud');
   });
+
+  it('SoundCloudAuth.openInDefaultBrowser invokes browser launcher without errors', () => {
+    let openedUrl = '';
+    (global as any).window = {
+      open: (url: string) => {
+        openedUrl = url;
+        return {};
+      },
+      location: { protocol: 'http:' },
+    };
+    (global as any).fetch = () => Promise.resolve({ ok: true });
+
+    SoundCloudAuth.openInDefaultBrowser('https://soundcloud.com/connect');
+    expect(openedUrl).toBe('https://soundcloud.com/connect');
+  });
 });
+
