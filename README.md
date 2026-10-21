@@ -1,6 +1,7 @@
-# SonicFlow 🎵
+# SonicFlow (SonicFlow-Soundcloud-Player) 🎵
 
-> **SonicFlow** — премиальный, кроссплатформенный музыкальный плеер нового поколения, объединяющий возможности **SoundCloud**, визуальное удобство **Spotify** и динамические синхронизированные тексты песен уровня **Яндекс Музыки**.
+> **The new SoundCloud player is the best and most convenient one out there, offering full customization.**
+> Кроссплатформенный музыкальный плеер нового поколения с прямой 1-клик авторизацией и синхронизацией SoundCloud, динамическими 60fps анимациями, Theme & Customization Studio и синхронизированными текстами песен уровня Яндекс Музыки / Spotify.
 
 ---
 
